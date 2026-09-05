@@ -26,6 +26,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@repo/types": [
+        "./types/admin.ts"
       ]
     }
   },

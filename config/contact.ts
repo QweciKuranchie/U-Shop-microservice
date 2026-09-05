@@ -44,7 +44,7 @@ export const contactConfig = {
   legal: {
     copyrightText:
       process.env.NEXT_PUBLIC_COPYRIGHT_TEXT ||
-      `© ${new Date().getFullYear()} UShop Ghana. All rights reserved.`,
+      `© ${new Date().getFullYear()} UShop Ghana.v1. All rights reserved.`,
     privacyUrl: process.env.NEXT_PUBLIC_PRIVACY_POLICY_URL || "/privacy",
     termsUrl: process.env.NEXT_PUBLIC_TERMS_URL || "/terms",
   },

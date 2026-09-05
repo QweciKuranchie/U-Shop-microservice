@@ -114,7 +114,7 @@ export const POST = async (request: NextRequest) => {
         })
       ),
       totalPrice: totalAmount,
-      currency: "USD",
+      currency: "GHS",
       amountDiscount: 0, // Can be calculated if you have discount logic
       address: {
         _type: "object",
@@ -199,7 +199,7 @@ export const POST = async (request: NextRequest) => {
             eventParams: {
               orderId: createdOrder._id,
               value: totalAmount,
-              currency: "USD",
+              currency: "GHS",
               items: items.map((item: CartItem) => ({
                 productId: item.product._id,
                 name: item.product.name || "Unknown Product",

@@ -55,10 +55,10 @@ export async function createOrUpdateUser(userData: CreateUserData) {
       throw new Error("User not authenticated");
     }
 
-    // Check if user already exists
+    // Check if user already exists using verified session userId
     const existingUser = await client.fetch(
       `*[_type == "user" && clerkUserId == $clerkUserId][0]`,
-      { clerkUserId: userData.clerkUserId }
+      { clerkUserId: userId }
     );
 
     if (existingUser) {
@@ -77,10 +77,10 @@ export async function createOrUpdateUser(userData: CreateUserData) {
 
       return existingUser._id;
     } else {
-      // Create new user
+      // Create new user bound to verified session userId
       const newUser = await client.create({
         _type: "user",
-        clerkUserId: userData.clerkUserId,
+        clerkUserId: userId,
         email: userData.email,
         firstName: userData.firstName,
         lastName: userData.lastName,
@@ -447,22 +447,30 @@ export async function updateAddress(
       throw new Error("User not authenticated");
     }
 
+    const user = await client.fetch(
+      `*[_type == "user" && clerkUserId == $clerkUserId][0]`,
+      { clerkUserId: userId }
+    );
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Verify ownership of the address
+    const isOwner = user.addresses?.some((addr: { _ref: string }) => addr._ref === addressId);
+    if (!isOwner) {
+      throw new Error("Address not found or unauthorized");
+    }
+
     // If this is set as default, unset all other default addresses
     if (addressData.isDefault) {
-      const user = await client.fetch(
-        `*[_type == "user" && clerkUserId == $clerkUserId][0]`,
-        { clerkUserId: userId }
+      const userAddresses = await client.fetch(
+        `*[_type == "address" && user._ref == $userId && _id != $addressId]`,
+        { userId: user._id, addressId }
       );
 
-      if (user) {
-        const userAddresses = await client.fetch(
-          `*[_type == "address" && user._ref == $userId && _id != $addressId]`,
-          { userId: user._id, addressId }
-        );
-
-        for (const address of userAddresses) {
-          await client.patch(address._id).set({ default: false }).commit();
-        }
+      for (const address of userAddresses) {
+        await client.patch(address._id).set({ default: false }).commit();
       }
     }
 
@@ -500,6 +508,12 @@ export async function deleteAddress(addressId: string) {
 
     if (!user) {
       throw new Error("User not found");
+    }
+
+    // Verify ownership of the address
+    const isOwner = user.addresses?.some((addr: { _ref: string }) => addr._ref === addressId);
+    if (!isOwner) {
+      throw new Error("Address not found or unauthorized");
     }
 
     // Remove address reference from user

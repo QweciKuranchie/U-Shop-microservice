@@ -1,12 +1,17 @@
 import { Product } from "./sanity.types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import _ from "lodash";
 
 export interface CartItem {
   product: Product;
   quantity: number;
 }
+
+export type OrderPlacementStep =
+  | "validating"
+  | "creating"
+  | "emailing"
+  | "redirecting";
 
 interface StoreState {
   items: CartItem[];
@@ -29,10 +34,10 @@ interface StoreState {
   resetFavorite: () => void;
   // order placement state
   isPlacingOrder: boolean;
-  orderStep: "validating" | "creating" | "emailing" | "redirecting";
+  orderStep: OrderPlacementStep;
   setOrderPlacementState: (
     isPlacing: boolean,
-    step?: "validating" | "creating" | "emailing" | "redirecting"
+    step?: OrderPlacementStep
   ) => void;
 }
 
@@ -43,136 +48,101 @@ const useCartStore = create<StoreState>()(
       favoriteProduct: [],
       addItem: (product) =>
         set((state) => {
-          const existingItem = _.find(
-            state.items,
+          const existingIndex = state.items.findIndex(
             (item) => item.product._id === product._id
           );
-          if (existingItem) {
-            return {
-              items: _.map(state.items, (item) =>
-                item.product._id === product._id
-                  ? { ...item, quantity: item.quantity + 1 }
-                  : item
-              ),
+          if (existingIndex > -1) {
+            const updatedItems = [...state.items];
+            updatedItems[existingIndex] = {
+              ...updatedItems[existingIndex],
+              quantity: updatedItems[existingIndex].quantity + 1,
             };
-          } else {
-            return { items: [...state.items, { product, quantity: 1 }] };
+            return { items: updatedItems };
           }
+          return { items: [...state.items, { product, quantity: 1 }] };
         }),
       addMultipleItems: (products) =>
         set((state) => {
-          let updatedItems = [...state.items];
+          const itemMap = new Map<string, CartItem>(
+            state.items.map((item) => [item.product._id, { ...item }])
+          );
 
-          _.forEach(products, ({ product, quantity }) => {
-            const existingItem = _.find(
-              updatedItems,
-              (item) => item.product._id === product._id
-            );
-
-            if (existingItem) {
-              updatedItems = _.map(updatedItems, (item) =>
-                item.product._id === product._id
-                  ? { ...item, quantity: item.quantity + quantity }
-                  : item
-              );
+          for (const { product, quantity } of products) {
+            const existing = itemMap.get(product._id);
+            if (existing) {
+              existing.quantity += quantity;
             } else {
-              updatedItems.push({ product, quantity });
+              itemMap.set(product._id, { product, quantity });
             }
-          });
+          }
 
-          return { items: updatedItems };
+          return { items: Array.from(itemMap.values()) };
         }),
       removeItem: (productId) =>
         set((state) => ({
-          items: _.reduce(
-            state.items,
-            (acc: CartItem[], item) => {
-              if (item.product._id === productId) {
-                if (item.quantity > 1) {
-                  acc.push({ ...item, quantity: item.quantity - 1 });
-                }
-              } else {
-                acc.push(item);
-              }
-              return acc;
-            },
-            [] as CartItem[]
-          ),
+          items: state.items
+            .map((item) =>
+              item.product._id === productId
+                ? { ...item, quantity: item.quantity - 1 }
+                : item
+            )
+            .filter((item) => item.quantity > 0),
         })),
       deleteCartProduct: (productId) =>
         set((state) => ({
-          items: _.filter(
-            state.items,
-            ({ product }) => product?._id !== productId
-          ),
+          items: state.items.filter((item) => item.product?._id !== productId),
         })),
       resetCart: () => set({ items: [] }),
       getTotalPrice: () => {
-        // This should be the final payable amount (current/discounted prices)
-        return _.reduce(
-          get().items,
+        // Final payable amount (current/discounted prices)
+        return get().items.reduce(
           (total, item) => total + (item.product.price ?? 0) * item.quantity,
           0
         );
       },
       getSubTotalPrice: () => {
-        // This should be the gross amount (before discount)
-        return _.reduce(
-          get().items,
-          (total, item) => {
-            const currentPrice = item.product.price ?? 0;
-            const discount = item.product.discount ?? 0;
-            const discountAmount = (discount * currentPrice) / 100;
-            const grossPrice = currentPrice + discountAmount;
-            return total + grossPrice * item.quantity;
-          },
-          0
-        );
+        // Gross amount (before discount)
+        return get().items.reduce((total, item) => {
+          const currentPrice = item.product.price ?? 0;
+          const discount = item.product.discount ?? 0;
+          const discountAmount = (discount * currentPrice) / 100;
+          const grossPrice = currentPrice + discountAmount;
+          return total + grossPrice * item.quantity;
+        }, 0);
       },
       getTotalDiscount: () => {
-        // New function to get total discount amount
-        return _.reduce(
-          get().items,
-          (total, item) => {
-            const currentPrice = item.product.price ?? 0;
-            const discount = item.product.discount ?? 0;
-            const discountAmount = (discount * currentPrice) / 100;
-            return total + discountAmount * item.quantity;
-          },
-          0
-        );
+        // Total discount amount
+        return get().items.reduce((total, item) => {
+          const currentPrice = item.product.price ?? 0;
+          const discount = item.product.discount ?? 0;
+          const discountAmount = (discount * currentPrice) / 100;
+          return total + discountAmount * item.quantity;
+        }, 0);
       },
       getItemCount: (productId) => {
-        const item = _.find(
-          get().items,
+        const item = get().items.find(
           (item) => item.product._id === productId
         );
         return item ? item.quantity : 0;
       },
       getGroupedItems: () => get().items,
-      addToFavorite: (product: Product) => {
-        return new Promise<void>((resolve) => {
-          set((state: StoreState) => {
-            const isFavorite = _.some(
-              state.favoriteProduct,
-              (item) => item._id === product._id
-            );
-            return {
-              favoriteProduct: isFavorite
-                ? _.filter(
-                    state.favoriteProduct,
-                    (item) => item._id !== product._id
-                  )
-                : [...state.favoriteProduct, { ...product }],
-            };
-          });
-          resolve();
+      addToFavorite: async (product: Product) => {
+        set((state: StoreState) => {
+          const isFavorite = state.favoriteProduct.some(
+            (item) => item._id === product._id
+          );
+          return {
+            favoriteProduct: isFavorite
+              ? state.favoriteProduct.filter(
+                  (item) => item._id !== product._id
+                )
+              : [...state.favoriteProduct, { ...product }],
+          };
         });
       },
       removeFromFavorite: (productId: string) => {
         set((state: StoreState) => ({
-          favoriteProduct: _.filter(
-            state.favoriteProduct,
+          favoriteProduct: state.favoriteProduct.filter(
             (item) => item?._id !== productId
           ),
         }));
@@ -182,7 +152,7 @@ const useCartStore = create<StoreState>()(
       },
       // order placement state
       isPlacingOrder: false,
-      orderStep: "validating" as const,
+      orderStep: "validating",
       setOrderPlacementState: (isPlacing, step = "validating") => {
         set({
           isPlacingOrder: isPlacing,
@@ -195,3 +165,4 @@ const useCartStore = create<StoreState>()(
 );
 
 export default useCartStore;
+

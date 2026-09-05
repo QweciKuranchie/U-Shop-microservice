@@ -55,7 +55,7 @@ export const POST = async (request: NextRequest) => {
       userId: clerkUserId,
       email: user.emailAddresses[0]?.emailAddress || email,
       amount: orderAmount,
-      currency: "usd",
+      currency: "ghs",
       status: "pending",
       metadata: {
         orderId: orderId.toString(),

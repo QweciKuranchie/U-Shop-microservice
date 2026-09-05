@@ -148,7 +148,7 @@ export async function POST() {
         newsletter: true,
         emailNotifications: true,
         smsNotifications: false,
-        preferredCurrency: "USD",
+        preferredCurrency: "GHS",
         preferredLanguage: "en",
       },
     });

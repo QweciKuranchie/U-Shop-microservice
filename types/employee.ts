@@ -1,2 +1,0 @@
-// Employee types removed
-export {};

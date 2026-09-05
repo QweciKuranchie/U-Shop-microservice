@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import {
   getUserAddressesByEmail,
   getUserOrdersByEmail,
 } from "@/sanity/Queries/emailUserQueries";
+import { verifyIsAdmin } from "@/lib/adminAuth";
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,6 +22,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: "Email parameter is required" },
         { status: 400 }
+      );
+    }
+
+    // Verify user owns this email or is an admin (prevents IDOR)
+    const client = await clerkClient();
+    const clerkUser = await client.users.getUser(userId).catch(() => null);
+    const userEmails = clerkUser?.emailAddresses.map((e) => e.emailAddress.toLowerCase()) || [];
+    const isAdmin = await verifyIsAdmin(userId);
+
+    if (!isAdmin && !userEmails.includes(email.toLowerCase().trim())) {
+      return NextResponse.json(
+        { error: "Forbidden: You do not have permission to view this user's data" },
+        { status: 403 }
       );
     }
 
