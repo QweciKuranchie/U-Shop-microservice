@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { IKUpload } from "imagekitio-next";
-import { Upload, X, Check, Loader2, Image as ImageIcon } from "lucide-react";
+import { upload } from "@imagekit/next";
+import { Upload, X, Loader2 } from "lucide-react";
 
 export interface UploadedImageResult {
   fileId: string;
@@ -25,6 +25,7 @@ interface ImageUploadProps {
   className?: string;
   previewUrl?: string;
   onRemovePreview?: () => void;
+  authEndpoint?: string;
 }
 
 export function ImageUpload({
@@ -37,6 +38,7 @@ export function ImageUpload({
   className = "",
   previewUrl,
   onRemovePreview,
+  authEndpoint = "/api/imagekit/auth",
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -44,68 +46,83 @@ export function ImageUpload({
     previewUrl || null
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const ikUploadRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUploadStart = () => {
-    setUploading(true);
-    setProgress(0);
-    setErrorMessage(null);
-  };
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const handleUploadProgress = (e: ProgressEvent) => {
-    if (e.lengthComputable) {
-      const percent = Math.round((e.loaded / e.total) * 100);
-      setProgress(percent);
-    }
-  };
-
-  const handleUploadSuccess = (res: {
-    fileId: string;
-    url: string;
-    thumbnailUrl?: string;
-    name: string;
-    filePath: string;
-    height?: number;
-    width?: number;
-    size?: number;
-  }) => {
-    setUploading(false);
-    setProgress(100);
-
-    const result: UploadedImageResult = {
-      fileId: res.fileId,
-      url: res.url,
-      thumbnailUrl: res.thumbnailUrl || res.url,
-      name: res.name,
-      filePath: res.filePath,
-      height: res.height,
-      width: res.width,
-      size: res.size,
-    };
-
-    setCurrentPreview(res.url);
-    onSuccess(result);
-  };
-
-  const handleUploadError = (err: { message?: string } | Error) => {
-    setUploading(false);
-    const msg = err?.message || "Image upload failed. Please try again.";
-    setErrorMessage(msg);
-    if (onError) onError(new Error(msg));
-  };
-
-  const validateFile = (file: File) => {
     if (file.size > maxSizeBytes) {
       const maxMB = (maxSizeBytes / (1024 * 1024)).toFixed(1);
       setErrorMessage(`File size exceeds maximum allowed size (${maxMB} MB).`);
-      return false;
+      return;
     }
-    return true;
+
+    setUploading(true);
+    setProgress(10);
+    setErrorMessage(null);
+
+    try {
+      // 1. Fetch authentication parameters from backend
+      const authRes = await fetch(authEndpoint);
+      if (!authRes.ok) {
+        throw new Error(`Authentication endpoint returned status ${authRes.status}`);
+      }
+      const { token, signature, expire } = await authRes.json();
+
+      const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
+      const urlEndpoint = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
+
+      if (!publicKey || !urlEndpoint) {
+        throw new Error("Missing ImageKit public configuration.");
+      }
+
+      // 2. Upload file via @imagekit/next upload()
+      const uploadRes = await upload({
+        file,
+        fileName: file.name,
+        token,
+        signature,
+        expire,
+        publicKey,
+        urlEndpoint,
+        folder,
+        onUploadProgress: (evt) => {
+          if (evt.lengthComputable) {
+            const percent = Math.round((evt.loaded / evt.total) * 100);
+            setProgress(percent);
+          }
+        },
+      });
+
+      setUploading(false);
+      setProgress(100);
+
+      const result: UploadedImageResult = {
+        fileId: uploadRes.fileId,
+        url: uploadRes.url,
+        thumbnailUrl: uploadRes.thumbnailUrl || uploadRes.url,
+        name: uploadRes.name,
+        filePath: uploadRes.filePath,
+        height: uploadRes.height,
+        width: uploadRes.width,
+        size: uploadRes.size,
+      };
+
+      setCurrentPreview(uploadRes.url);
+      onSuccess(result);
+    } catch (err: any) {
+      setUploading(false);
+      const msg = err?.message || "Image upload failed. Please try again.";
+      setErrorMessage(msg);
+      if (onError) onError(new Error(msg));
+    }
   };
 
   const handleClear = () => {
     setCurrentPreview(null);
     setErrorMessage(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
     if (onRemovePreview) onRemovePreview();
   };
 
@@ -130,22 +147,18 @@ export function ImageUpload({
         </div>
       ) : (
         <div
-          onClick={() => ikUploadRef.current?.click()}
+          onClick={() => fileInputRef.current?.click()}
           className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
             uploading
               ? "border-purple-500 bg-purple-500/5 cursor-wait"
               : "border-slate-800 hover:border-purple-500/50 bg-slate-950/50 hover:bg-slate-900/50"
           }`}
         >
-          <IKUpload
-            ref={ikUploadRef}
-            folder={folder}
+          <input
+            ref={fileInputRef}
+            type="file"
             accept={accept}
-            validateFile={validateFile}
-            onUploadStart={handleUploadStart}
-            onUploadProgress={handleUploadProgress}
-            onSuccess={handleUploadSuccess}
-            onError={handleUploadError}
+            onChange={handleFileChange}
             className="hidden"
           />
 

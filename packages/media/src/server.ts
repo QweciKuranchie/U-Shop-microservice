@@ -1,4 +1,4 @@
-import ImageKit from "imagekit";
+import ImageKit from "@imagekit/nodejs";
 
 export interface ImageKitAuthParams {
   token: string;
