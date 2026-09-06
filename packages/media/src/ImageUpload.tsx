@@ -85,8 +85,8 @@ export function ImageUpload({
         expire,
         publicKey,
         folder,
-        onUploadProgress: (evt: { loaded: number; total: number; lengthComputable?: boolean }) => {
-          if (evt.lengthComputable ?? true) {
+        onProgress: (evt: ProgressEvent) => {
+          if (evt.lengthComputable) {
             const percent = Math.round((evt.loaded / evt.total) * 100);
             setProgress(percent);
           }
