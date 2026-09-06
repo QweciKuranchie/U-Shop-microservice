@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { cn } from "@repo/utils";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -109,6 +110,7 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => {
       <body className="font-poppins antialiased">
         {children}
         <ServiceWorkerRegister />
+        <Analytics />
       </body>
     </html>
   );
