@@ -71,9 +71,8 @@ export function ImageUpload({
       const { token, signature, expire } = await authRes.json();
 
       const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
-      const urlEndpoint = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
 
-      if (!publicKey || !urlEndpoint) {
+      if (!publicKey) {
         throw new Error("Missing ImageKit public configuration.");
       }
 
@@ -85,10 +84,9 @@ export function ImageUpload({
         signature,
         expire,
         publicKey,
-        urlEndpoint,
         folder,
-        onUploadProgress: (evt) => {
-          if (evt.lengthComputable) {
+        onUploadProgress: (evt: { loaded: number; total: number; lengthComputable?: boolean }) => {
+          if (evt.lengthComputable ?? true) {
             const percent = Math.round((evt.loaded / evt.total) * 100);
             setProgress(percent);
           }
@@ -98,18 +96,23 @@ export function ImageUpload({
       setUploading(false);
       setProgress(100);
 
+      const fileId = uploadRes.fileId ?? "";
+      const url = uploadRes.url ?? "";
+      const name = uploadRes.name ?? file.name;
+      const filePath = uploadRes.filePath ?? "";
+
       const result: UploadedImageResult = {
-        fileId: uploadRes.fileId,
-        url: uploadRes.url,
-        thumbnailUrl: uploadRes.thumbnailUrl || uploadRes.url,
-        name: uploadRes.name,
-        filePath: uploadRes.filePath,
+        fileId,
+        url,
+        thumbnailUrl: uploadRes.thumbnailUrl || url,
+        name,
+        filePath,
         height: uploadRes.height,
         width: uploadRes.width,
         size: uploadRes.size,
       };
 
-      setCurrentPreview(uploadRes.url);
+      setCurrentPreview(url || null);
       onSuccess(result);
     } catch (err: any) {
       setUploading(false);
