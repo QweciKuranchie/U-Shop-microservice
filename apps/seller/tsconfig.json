@@ -4,6 +4,21 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@repo/auth": [
+        "../../packages/auth/src/index.ts"
+      ],
+      "@repo/media": [
+        "../../packages/media/src/index.ts"
+      ],
+      "@repo/sanity": [
+        "../../packages/sanity/src/index.ts"
+      ],
+      "@repo/ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@repo/utils": [
+        "../../packages/utils/src/index.ts"
       ]
     }
   },
