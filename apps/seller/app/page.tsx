@@ -2,21 +2,17 @@ import Link from "next/link";
 import { 
   ShoppingBag, 
   TrendingUp, 
-  ShieldCheck, 
   Truck, 
   Store, 
-  Users, 
-  Zap, 
   ArrowRight, 
   CheckCircle2, 
   CreditCard, 
   BarChart3, 
   Headphones, 
-  Sparkles,
   ChevronRight,
-  HelpCircle,
   Building2,
-  Globe
+  Globe,
+  Star
 } from "lucide-react";
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 
@@ -88,7 +84,6 @@ export default function SellerLandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center max-w-3xl mx-auto space-y-6">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-purple-400" />
               <span>The Next-Gen Seller Marketplace</span>
             </div>
 
@@ -188,7 +183,7 @@ export default function SellerLandingPage() {
                 <div className="p-5 rounded-xl bg-slate-950/60 border border-slate-800/80">
                   <div className="flex items-center justify-between text-slate-400 mb-2">
                     <span className="text-xs font-medium">Store Rating</span>
-                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
                   </div>
                   <div className="text-2xl font-bold text-white">4.9 / 5.0</div>
                   <span className="text-xs text-amber-400 font-medium">Top Rated Seller</span>
