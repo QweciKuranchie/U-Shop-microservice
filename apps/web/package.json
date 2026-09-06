@@ -46,6 +46,7 @@
     "@radix-ui/react-visually-hidden": "^1.2.3",
     "@repo/auth": "workspace:*",
     "@repo/config": "workspace:*",
+    "@repo/media": "workspace:*",
     "@repo/sanity": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",

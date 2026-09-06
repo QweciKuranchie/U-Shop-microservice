@@ -23,6 +23,7 @@
     "@radix-ui/react-tabs": "^1.1.1",
     "@repo/auth": "workspace:*",
     "@repo/config": "workspace:*",
+    "@repo/media": "workspace:*",
     "@repo/sanity": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",

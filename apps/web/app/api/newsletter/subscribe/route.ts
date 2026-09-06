@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { subscribeToNewsletter } from "@/actions/subscriptionActions";
 import { sendMail } from "@/lib/emailService";
+import { checkRateLimit, getClientIp } from "@repo/utils";
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply Rate Limiting (max 5 subscriptions per 10 mins per IP)
+    const rateLimitError = checkRateLimit(request, "newsletter-sub", {
+      limit: 5,
+      windowMs: 10 * 60 * 1000,
+    });
+    if (rateLimitError) return rateLimitError;
+
     const body = await request.json();
     const { email } = body;
 
@@ -13,10 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get client info
-    const ipAddress =
-      request.headers.get("x-forwarded-for") ||
-      request.headers.get("x-real-ip") ||
-      "unknown";
+    const ipAddress = getClientIp(request);
     const userAgent = request.headers.get("user-agent") || "unknown";
 
     // Subscribe to newsletter
