@@ -1,6 +1,7 @@
 import { defineConfig } from 'sanity';
 import { structureTool } from 'sanity/structure';
 import { visionTool } from '@sanity/vision';
+import { imagekitPlugin } from 'sanity-plugin-imagekit';
 import { schema } from './schemaTypes';
 import { structure } from './structure';
 
@@ -17,5 +18,10 @@ export default defineConfig({
   plugins: [
     structureTool({ structure }),
     visionTool({ defaultApiVersion: apiVersion }),
+    imagekitPlugin({
+      urlEndpoint: process.env.SANITY_STUDIO_IMAGEKIT_URL_ENDPOINT || '',
+      publicKey: process.env.SANITY_STUDIO_IMAGEKIT_PUBLIC_KEY || '',
+    }),
   ],
 });
+

@@ -42,7 +42,8 @@
     "@sanity/image-url": "2",
     "lucide-react": "^1.23.0",
     "next-sanity": "^13.1.1",
-    "sanity": "5"
+    "sanity": "5",
+    "sanity-plugin-imagekit": "^1.1.0"
   },
   "peerDependencies": {
     "@sanity/client": ">=7",

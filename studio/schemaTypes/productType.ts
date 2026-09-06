@@ -752,13 +752,24 @@ export const productType = defineType({
       type: "array",
       group: "images",
       description:
-        "1 to 8 high quality images (500x500 to 2000x2000 px, max 2MB each). First image is main listing thumbnail.",
+        "1 to 8 high quality images. First image is main listing thumbnail.",
       of: [
         {
           type: "image",
           options: {
             hotspot: true,
           },
+        },
+        {
+          type: "object",
+          name: "imagekitAsset",
+          title: "ImageKit Asset",
+          fields: [
+            defineField({ name: "url", title: "ImageKit URL", type: "url" }),
+            defineField({ name: "fileId", title: "File ID", type: "string" }),
+            defineField({ name: "filePath", title: "File Path", type: "string" }),
+            defineField({ name: "thumbnailUrl", title: "Thumbnail URL", type: "url" }),
+          ],
         },
       ],
       validation: (Rule) =>
