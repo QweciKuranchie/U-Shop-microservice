@@ -1,0 +1,23 @@
+{
+  "name": "studio",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "sanity dev --port 3333",
+    "build": "sanity build",
+    "start": "sanity start",
+    "typegen": "sanity schema extract && sanity typegen generate"
+  },
+  "dependencies": {
+    "@sanity/icons": "^3.5.2",
+    "@sanity/vision": "5",
+    "lucide-react": "^1.23.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "sanity": "5",
+    "styled-components": "^6.1.15"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "@repo/auth",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./server": {
+      "import": "./src/server.ts",
+      "types": "./src/server.ts"
+    },
+    "./middleware": {
+      "import": "./src/middleware.ts",
+      "types": "./src/middleware.ts"
+    },
+    "./constants": {
+      "import": "./src/constants.ts",
+      "types": "./src/constants.ts"
+    }
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^6.39.6",
+    "@repo/sanity": "workspace:*"
+  },
+  "peerDependencies": {
+    "@clerk/nextjs": ">=6",
+    "next": ">=15"
+  },
+  "devDependencies": {
+    "@repo/config": "workspace:*",
+    "next": "16.2.11",
+    "typescript": "^5"
+  }
+}

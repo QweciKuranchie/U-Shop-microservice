@@ -1,0 +1,37 @@
+{
+  "name": "@repo/utils",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./cn": {
+      "import": "./src/cn.ts",
+      "types": "./src/cn.ts"
+    },
+    "./cache": {
+      "import": "./src/cache.ts",
+      "types": "./src/cache.ts"
+    },
+    "./formatters": {
+      "import": "./src/formatters.ts",
+      "types": "./src/formatters.ts"
+    },
+    "./constants": {
+      "import": "./src/constants.ts",
+      "types": "./src/constants.ts"
+    }
+  },
+  "peerDependencies": {
+    "clsx": ">=2",
+    "next": ">=15",
+    "tailwind-merge": ">=3"
+  },
+  "devDependencies": {
+    "@repo/config": "workspace:*",
+    "next": "16.2.11",
+    "typescript": "^5"
+  }
+}
