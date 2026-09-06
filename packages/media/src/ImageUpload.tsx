@@ -59,7 +59,16 @@ export function ImageUpload({
     }
   };
 
-  const handleUploadSuccess = (res: any) => {
+  const handleUploadSuccess = (res: {
+    fileId: string;
+    url: string;
+    thumbnailUrl?: string;
+    name: string;
+    filePath: string;
+    height?: number;
+    width?: number;
+    size?: number;
+  }) => {
     setUploading(false);
     setProgress(100);
 
@@ -78,7 +87,7 @@ export function ImageUpload({
     onSuccess(result);
   };
 
-  const handleUploadError = (err: any) => {
+  const handleUploadError = (err: { message?: string } | Error) => {
     setUploading(false);
     const msg = err?.message || "Image upload failed. Please try again.";
     setErrorMessage(msg);

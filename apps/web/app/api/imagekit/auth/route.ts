@@ -5,10 +5,11 @@ export async function GET() {
   try {
     const authParams = getImageKitAuthParams();
     return NextResponse.json(authParams);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to generate authentication parameters.";
     console.error("Error generating ImageKit auth parameters:", error);
     return NextResponse.json(
-      { error: error?.message || "Failed to generate authentication parameters." },
+      { error: message },
       { status: 500 }
     );
   }
