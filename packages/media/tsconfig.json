@@ -1,7 +1,9 @@
 {
-  "extends": "@repo/config/tsconfig/base.json",
+  "extends": "../config/tsconfig/nextjs.json",
   "compilerOptions": {
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "jsx": "react-jsx"
   },
   "include": ["src/**/*"]
 }

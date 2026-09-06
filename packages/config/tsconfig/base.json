@@ -13,14 +13,6 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx",
-    "baseUrl": ".",
-    "paths": {
-      "@repo/auth": ["../../auth/src"],
-      "@repo/media": ["../../media/src"],
-      "@repo/sanity": ["../../sanity/src"],
-      "@repo/ui": ["../../ui/src"],
-      "@repo/utils": ["../../utils/src"]
-    }
+    "jsx": "react-jsx"
   }
 }
