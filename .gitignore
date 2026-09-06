@@ -1,7 +1,5 @@
-i# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
-/node_modules
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -11,39 +9,58 @@ i# See https://help.github.com/articles/ignoring-files/ for more about ignoring 
 !.yarn/versions
 
 # testing
-/coverage
+coverage/
+*.lcov
 
-# next.js
-/.next/
-/out/
+# next.js & production builds
+.next/
+out/
+build/
+dist/
+.turbo/
 
-# production
-/build
+# sanity studio build & runtime cache
+.sanity/
 
-# misc
+# nx
+.nx/cache
+.nx/workspace-data
+.nx/migrate-runs
+.nx/polygraph
+
+# misc & OS
 .DS_Store
 *.pem
 
-# debug
+# debug logs
+*.log
+*.log*
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files (allow .env.example)
+.env
+.env.*
+.env*.local
+!.env.example
 
 # vercel
-.vercel
+.vercel/
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
 
+# AI agents, scratch scripts & local tools
+.gemini/
+.claude/
+scratch/
 .agents
 skills-lock.json
 
-# seed / migration scripts
-/scripts/
-
+# documentation & migration scripts
+scripts/
 docs/
+.kiro/
