@@ -7,21 +7,17 @@ export interface ImageKitAuthParams {
 }
 
 export function getImageKitAuthParams(): ImageKitAuthParams {
-  const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY;
   const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
-  const urlEndpoint = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
 
-  if (!publicKey || !privateKey || !urlEndpoint) {
+  if (!privateKey) {
     throw new Error(
-      "Missing ImageKit configuration environment variables (NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY, IMAGEKIT_PRIVATE_KEY, NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT)."
+      "Missing ImageKit configuration environment variable (IMAGEKIT_PRIVATE_KEY)."
     );
   }
 
   const imagekit = new ImageKit({
-    publicKey,
     privateKey,
-    urlEndpoint,
   });
 
-  return imagekit.getAuthenticationParameters();
+  return imagekit.helper.getAuthenticationParameters();
 }
