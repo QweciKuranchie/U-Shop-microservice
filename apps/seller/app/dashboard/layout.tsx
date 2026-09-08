@@ -15,7 +15,7 @@ export default async function DashboardLayout({
 }) {
   const { userId } = await auth();
   if (!userId) {
-    redirect("https://ushopgh.com/sign-in?redirect_url=https://seller.ushopgh.com/dashboard");
+    redirect("/sign-in");
   }
 
   const store = await client.fetch(SELLER_STORE_QUERY, { userId });

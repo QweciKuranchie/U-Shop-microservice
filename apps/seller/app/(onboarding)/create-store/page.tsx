@@ -8,7 +8,7 @@ import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Inpu
 export default async function CreateStorePage() {
   const { userId } = await auth();
   if (!userId) {
-    redirect("https://ushopgh.com/sign-in?redirect_url=https://seller.ushopgh.com/create-store");
+    redirect("/sign-in");
   }
 
   const existingStore = await client.fetch(SELLER_STORE_QUERY, { userId });
