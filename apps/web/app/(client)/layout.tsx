@@ -53,7 +53,7 @@ export default function RootLayout({
                   border: "1px solid rgba(212, 0, 155, 0.25)",
                   boxShadow: "0 10px 25px -5px rgba(107, 31, 168, 0.15)",
                   borderRadius: "0.85rem",
-                  fontFamily: "var(--font-poppins), sans-serif",
+                  fontFamily: "var(--font-sans), sans-serif",
                   fontWeight: 500,
                 },
               }}

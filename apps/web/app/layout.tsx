@@ -107,7 +107,7 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => {
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="mask-icon" href="/assets/logos/favicon/favicon-32x32.png" color="#6B1FA8" />
       </head>
-      <body className="font-poppins antialiased">
+      <body className="font-sans antialiased">
         {children}
         <ServiceWorkerRegister />
         <Analytics />
