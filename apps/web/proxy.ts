@@ -2,9 +2,7 @@ import { createMiddleware } from "@repo/auth";
 
 export default createMiddleware([
   "/user(.*)",
-  "/admin(.*)",
   "/checkout(.*)",
-  "/api/admin(.*)",
 ]);
 
 export const config = {
