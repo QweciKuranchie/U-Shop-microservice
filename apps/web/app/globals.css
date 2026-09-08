@@ -5,7 +5,6 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-poppins: Poppins, sans-serif;
   --color-ushop_light_pink: #fcf0e4;
   --color-ushop_dark_green: #063c28;
   --color-ushop_btn_dark_green: #063D29;
@@ -88,7 +87,6 @@
 }
 
 :root {
-  --font-poppins: Poppins, sans-serif;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
