@@ -16,7 +16,7 @@ export default async function DashboardLayout({
   try {
     await requireAdmin();
   } catch {
-    redirect("https://ushopgh.com/sign-in?redirect_url=https://admin.ushopgh.com");
+    redirect("/sign-in");
   }
 
   const cookieStore = await cookies();

@@ -58,7 +58,7 @@ export default function SellerLandingPage() {
 
             <SignedOut>
               <Link
-                href="/dashboard"
+                href="/sign-in"
                 className="text-sm font-medium px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-900 transition-all"
               >
                 Sign In

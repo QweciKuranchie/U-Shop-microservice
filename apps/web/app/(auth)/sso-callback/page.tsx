@@ -7,7 +7,7 @@ export default function SSOCallbackPage() {
       <Logo imageClassName="h-10 w-auto" />
       <div className="w-8 h-8 border-4 border-ushop-pink border-t-transparent rounded-full animate-spin mt-2"></div>
       <p className="text-sm font-semibold text-purple-200">Completing secure login...</p>
-      <AuthenticateWithRedirectCallback signUpForceRedirectUrl="/" signInForceRedirectUrl="/" />
+      <AuthenticateWithRedirectCallback signUpFallbackRedirectUrl="/" signInFallbackRedirectUrl="/" />
     </div>
   );
 }

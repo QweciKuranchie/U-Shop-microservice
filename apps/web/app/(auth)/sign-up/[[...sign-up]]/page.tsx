@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import SlidingAuthContainer from "@/components/auth/SlidingAuthContainer";
 
 export default function SignUpPage() {
-  return <SlidingAuthContainer initialMode="sign-up" />;
+  return (
+    <Suspense fallback={null}>
+      <SlidingAuthContainer initialMode="sign-up" />
+    </Suspense>
+  );
 }

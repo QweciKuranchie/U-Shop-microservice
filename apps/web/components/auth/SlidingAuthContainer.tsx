@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { useSignIn, useSignUp } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { useSignIn, useSignUp, useAuth } from "@clerk/nextjs";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Mail, Lock, User, Eye, EyeOff, ShieldCheck, Check, Truck, Tag } from "lucide-react";
@@ -149,7 +149,20 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
 
   const { isLoaded: isSignInLoaded, signIn, setActive: setSignInActive } = useSignIn();
   const { isLoaded: isSignUpLoaded, signUp, setActive: setSignUpActive } = useSignUp();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect_url") || searchParams.get("redirectUrl") || "/";
+
+  React.useEffect(() => {
+    if (isAuthLoaded && isSignedIn && !isModal && redirectUrl !== "/") {
+      if (redirectUrl.startsWith("http://") || redirectUrl.startsWith("https://")) {
+        window.location.href = redirectUrl;
+      } else {
+        router.push(redirectUrl);
+      }
+    }
+  }, [isAuthLoaded, isSignedIn, isModal, redirectUrl, router]);
 
   // Google OAuth Handler
   const handleGoogleAuth = async (mode: "sign-in" | "sign-up") => {
@@ -158,13 +171,13 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
         await signIn.authenticateWithRedirect({
           strategy: "oauth_google",
           redirectUrl: "/sso-callback",
-          redirectUrlComplete: "/",
+          redirectUrlComplete: redirectUrl,
         });
       } else if (isSignUpLoaded && signUp) {
         await signUp.authenticateWithRedirect({
           strategy: "oauth_google",
           redirectUrl: "/sso-callback",
-          redirectUrlComplete: "/",
+          redirectUrlComplete: redirectUrl,
         });
       }
     } catch (err: unknown) {
@@ -201,7 +214,7 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
         }
         await setSignInActive({
           session: result.createdSessionId,
-          redirectUrl: "/",
+          redirectUrl,
         });
       } else if (result.status === "needs_first_factor") {
         const passwordResult = await signIn.attemptFirstFactor({
@@ -214,7 +227,7 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
           }
           await setSignInActive({
             session: passwordResult.createdSessionId,
-            redirectUrl: "/",
+            redirectUrl,
           });
         } else {
           setSignInError("Sign-in verification incomplete. Please try again.");
@@ -293,7 +306,7 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
         }
         await setSignUpActive({
           session: signUpAttempt.createdSessionId,
-          redirectUrl: "/",
+          redirectUrl,
         });
         return;
       }
@@ -336,7 +349,7 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
         if (completeSignUp.createdSessionId) {
           await setSignUpActive({
             session: completeSignUp.createdSessionId,
-            redirectUrl: "/",
+            redirectUrl,
           });
         }
       } else if (signUp.status === "complete" && signUp.createdSessionId) {
@@ -345,7 +358,7 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
         }
         await setSignUpActive({
           session: signUp.createdSessionId,
-          redirectUrl: "/",
+          redirectUrl,
         });
       } else {
         setSignUpError(`Verification status: ${completeSignUp.status}. Please check the code.`);
@@ -367,7 +380,7 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
           }
           await setSignUpActive({
             session: signUp.createdSessionId,
-            redirectUrl: "/",
+            redirectUrl,
           });
           return;
         }
