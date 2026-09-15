@@ -14,7 +14,16 @@ export async function GET() {
     const { userId } = await auth();
 
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        {
+          user: null,
+          ordersCount: 0,
+          unreadNotifications: 0,
+          walletBalance: 0,
+          authenticated: false,
+        },
+        { status: 200 }
+      );
     }
 
     // Fetch all data in parallel
