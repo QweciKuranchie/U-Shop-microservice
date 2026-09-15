@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, ShoppingBag, ShoppingCart, DollarSign, BarChart3, Store } from "lucide-react";
 import { cn } from "@repo/utils";
@@ -19,15 +20,19 @@ export function SellerSidebar() {
 
   return (
     <aside className="w-64 border-r bg-card min-h-screen flex flex-col p-4 space-y-6">
-      <div className="flex items-center gap-2 px-2">
-        <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg">
-          U
-        </div>
-        <div>
-          <h2 className="font-bold text-base leading-tight">UShop Seller</h2>
-          <p className="text-xs text-muted-foreground">Seller Center</p>
-        </div>
-      </div>
+      <Link href="/dashboard" className="flex items-center gap-2 px-2 py-1">
+        <Image
+          src="/assets/logos/web/logo-300w.png"
+          alt="UShop Seller Center"
+          width={120}
+          height={32}
+          className="h-8 w-auto object-contain"
+          priority
+        />
+        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+          Seller
+        </span>
+      </Link>
       <nav className="space-y-1 flex-1">
         {navigation.map((item) => {
           const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
