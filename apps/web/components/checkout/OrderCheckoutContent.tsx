@@ -28,7 +28,7 @@ interface OrderCheckoutContentProps {
 
 export function OrderCheckoutContent({ order }: OrderCheckoutContentProps) {
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
-    useState<PaymentMethod>(PAYMENT_METHODS.STRIPE);
+    useState<PaymentMethod>(PAYMENT_METHODS.CARD);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handlePayNow = async () => {
@@ -45,7 +45,6 @@ export function OrderCheckoutContent({ order }: OrderCheckoutContentProps) {
       const data = await response.json();
 
       if (response.ok && data.success && data.url) {
-        // Redirect to Stripe checkout
         window.location.href = data.url;
       } else {
         toast.error(data.error || "Failed to create payment session");
@@ -131,20 +130,20 @@ export function OrderCheckoutContent({ order }: OrderCheckoutContentProps) {
               }
               className="space-y-3"
             >
-              <div className={`flex items-start space-x-3 p-3 border rounded-lg transition-colors ${selectedPaymentMethod === PAYMENT_METHODS.STRIPE ? "border-ushop-pink bg-ushop_light_pink/30" : ""}`}>
+              <div className={`flex items-start space-x-3 p-3 border rounded-lg transition-colors ${selectedPaymentMethod === PAYMENT_METHODS.CARD ? "border-ushop-pink bg-ushop_light_pink/30" : ""}`}>
                 <RadioGroupItem
-                  value={PAYMENT_METHODS.STRIPE}
-                  id="stripe"
+                  value={PAYMENT_METHODS.CARD}
+                  id="card"
                   className="mt-1 accent-ushop-purple"
                 />
                 <div className="flex-1">
-                  <Label htmlFor="stripe" className="cursor-pointer">
+                  <Label htmlFor="card" className="cursor-pointer">
                     <div className="flex items-center gap-2 font-medium">
                       <CreditCard className="w-4 h-4 text-ushop-purple-dark" />
                       Credit/Debit Card
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Pay securely with your credit or debit card via Stripe
+                      Pay securely with your credit or debit card via Paystack
                     </p>
                   </Label>
                 </div>

@@ -67,7 +67,7 @@ export function useOrderPlacement({ user }: UseOrderPlacementProps) {
     shipping: number,
     tax: number,
     total: number,
-    redirectToCheckout: boolean = false // New parameter to control redirect behavior
+    redirectToCheckout: boolean = false
   ) => {
     if (!selectedAddress) {
       toast.error("Address Required", {
@@ -94,7 +94,7 @@ export function useOrderPlacement({ user }: UseOrderPlacementProps) {
     );
     if (outOfStockItems.length > 0) {
       toast.error("Insufficient Stock", {
-        description: `${outOfStockItems.join(", ")} ${
+        description: `${outOfStockItems.map((i) => i.product.name).join(", ")} ${
           outOfStockItems.length > 1 ? "are" : "is"
         } out of stock`,
         duration: 5000,
@@ -108,7 +108,7 @@ export function useOrderPlacement({ user }: UseOrderPlacementProps) {
     );
     if (insufficientStockItems.length > 0) {
       toast.error("Stock Limit Exceeded", {
-        description: `${insufficientStockItems.join(", ")} ${
+        description: `${insufficientStockItems.map((i) => i.product.name).join(", ")} ${
           insufficientStockItems.length > 1 ? "have" : "has"
         } insufficient stock`,
         duration: 5000,
@@ -132,7 +132,7 @@ export function useOrderPlacement({ user }: UseOrderPlacementProps) {
         tax,
       };
 
-      // Create order in Sanity first (without email sending)
+      // Create order in Sanity
       const orderResponse = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -148,203 +148,52 @@ export function useOrderPlacement({ user }: UseOrderPlacementProps) {
       const orderId = orderResult.order._id;
       const orderNumber = orderResult.order.orderNumber;
 
-      // Step 2: Send confirmation email
-      setOrderPlacementState(true, "emailing");
+      // Handle Cash on Delivery
+      if (selectedPaymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY) {
+        setOrderPlacementState(true, "emailing");
 
-      const emailData: EmailOrderData = {
-        customerName: "Customer", // Will be filled from order data in API
-        customerEmail: user?.emailAddresses[0]?.emailAddress || "",
-        orderId: orderNumber,
-        orderDate: new Date().toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }),
-        items: cartSnapshot.map((item) => ({
-          name: item.product.name || "Unknown Product",
-          price: item.product.price || 0,
-          quantity: item.quantity,
-          image: item.product.images?.[0] || undefined,
-        })),
-        subtotal,
-        shipping,
-        tax,
-        total,
-        shippingAddress: {
-          name: selectedAddress.name,
-          street: selectedAddress.address,
-          city: selectedAddress.city,
-          state: selectedAddress.state,
-          zipCode: selectedAddress.zip,
-          country: "United States",
-        },
-        estimatedDelivery: (() => {
-          const deliveryDate = new Date();
-          deliveryDate.setDate(deliveryDate.getDate() + 5);
-          return deliveryDate.toLocaleDateString("en-US", {
-            weekday: "long",
+        const emailData: EmailOrderData = {
+          customerName: "Customer",
+          customerEmail: user?.emailAddresses[0]?.emailAddress || "",
+          orderId: orderNumber,
+          orderDate: new Date().toLocaleDateString("en-US", {
             year: "numeric",
             month: "long",
             day: "numeric",
-          });
-        })(),
-      };
+          }),
+          items: cartSnapshot.map((item) => ({
+            name: item.product.name || "Unknown Product",
+            price: item.product.price || 0,
+            quantity: item.quantity,
+            image: item.product.images?.[0] || undefined,
+          })),
+          subtotal,
+          shipping,
+          tax,
+          total,
+          shippingAddress: {
+            name: selectedAddress.name,
+            street: selectedAddress.address,
+            city: selectedAddress.city,
+            state: selectedAddress.state,
+            zipCode: selectedAddress.zip,
+            country: "Ghana",
+          },
+        };
 
-      // Send email via separate API
-      try {
-        const emailResponse = await fetch("/api/orders/send-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderData: emailData }),
-        });
-
-        if (!emailResponse.ok) {
-          console.error("Failed to send email, but order was created");
-        }
-      } catch (emailError) {
-        console.error("Email sending failed:", emailError);
-        // Don't fail the order if email fails
-      }
-
-      // Step 3: Prepare for redirect (don't clear cart yet)
-      setOrderPlacementState(true, "redirecting");
-
-      toast.success("Order Placed Successfully!", {
-        description: "Confirmation email sent",
-        duration: 4000,
-      });
-
-      if (selectedPaymentMethod === PAYMENT_METHODS.STRIPE) {
-        if (redirectToCheckout) {
-          // For "Proceed to Checkout" - redirect to checkout page with order details
-          toast.success("Order Created! Redirecting to Checkout 🛒", {
-            description: "Taking you to the checkout page...",
-            duration: 3000,
-          });
-          return {
-            success: true,
-            orderId,
-            orderNumber,
-            redirectTo: `/checkout?order_id=${orderId}&orderNumber=${orderNumber}`,
-            isCheckoutRedirect: true,
-          };
-        } else {
-          // For "Place Order" - create Stripe session and redirect to payment
-          const stripeResponse = await fetch("/api/checkout/stripe", {
+        try {
+          await fetch("/api/orders/send-email", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              orderId,
-              orderNumber,
-              items: cartSnapshot,
-              email: user?.emailAddresses[0]?.emailAddress,
-              shippingAddress: selectedAddress,
-              orderAmount: total,
-            }),
+            body: JSON.stringify({ orderData: emailData }),
           });
-
-          if (!stripeResponse.ok) {
-            toast.error(
-              "Order created but payment setup failed. Check your orders."
-            );
-            return {
-              success: true,
-              orderId,
-              orderNumber,
-              redirectTo: `/user/orders`,
-              paymentSetupFailed: true,
-            };
-          }
-
-          const stripeResult = await stripeResponse.json();
-
-          if (stripeResult.url) {
-            toast.success("Redirecting to Payment 💳", {
-              description: "Taking you to secure payment gateway...",
-              duration: 3000,
-            });
-            return {
-              success: true,
-              orderId,
-              orderNumber,
-              redirectTo: stripeResult.url,
-              isStripeRedirect: true,
-            };
-          } else {
-            toast.error("Payment Setup Failed", {
-              description:
-                "Order created but payment setup failed. Check your orders.",
-              duration: 5000,
-            });
-            return {
-              success: true,
-              orderId,
-              orderNumber,
-              redirectTo: `/user/orders`,
-              paymentSetupFailed: true,
-            };
-          }
-        }
-      } else if (selectedPaymentMethod === PAYMENT_METHODS.CLERK) {
-        // Handle Clerk payment
-        const clerkResponse = await fetch("/api/checkout/clerk", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            orderId,
-            orderNumber,
-            items: cartSnapshot,
-            email: user?.emailAddresses[0]?.emailAddress,
-            shippingAddress: selectedAddress,
-            orderAmount: total,
-            clerkUserId: user?.id,
-          }),
-        });
-
-        if (!clerkResponse.ok) {
-          toast.error(
-            "Order created but payment setup failed. Check your orders."
-          );
-          return {
-            success: true,
-            orderId,
-            orderNumber,
-            redirectTo: `/user/orders`,
-            paymentSetupFailed: true,
-          };
+        } catch (emailError) {
+          console.error("Email sending failed for COD order:", emailError);
         }
 
-        const clerkResult = await clerkResponse.json();
+        setOrderPlacementState(true, "redirecting");
 
-        if (clerkResult.url) {
-          toast.success("Processing Clerk Payment 💳", {
-            description: "Processing your payment...",
-            duration: 3000,
-          });
-          return {
-            success: true,
-            orderId,
-            orderNumber,
-            redirectTo: clerkResult.url,
-            isClerkRedirect: true,
-          };
-        } else {
-          toast.error("Payment Setup Failed", {
-            description:
-              "Order created but payment setup failed. Check your orders.",
-            duration: 5000,
-          });
-          return {
-            success: true,
-            orderId,
-            orderNumber,
-            redirectTo: `/user/orders`,
-            paymentSetupFailed: true,
-          };
-        }
-      } else {
         if (redirectToCheckout) {
-          // For "Proceed to Checkout" with COD - redirect to checkout page
           toast.success("Order Created! Redirecting to Checkout 🛒", {
             description: "Taking you to the checkout page...",
             duration: 3000,
@@ -357,7 +206,6 @@ export function useOrderPlacement({ user }: UseOrderPlacementProps) {
             isCheckoutRedirect: true,
           };
         } else {
-          // For "Place Order" with COD - redirect to success page
           toast.success("Order Confirmed! 🚚", {
             description: "You'll pay upon delivery",
             duration: 4000,
@@ -371,6 +219,16 @@ export function useOrderPlacement({ user }: UseOrderPlacementProps) {
           };
         }
       }
+
+      // Card and Mobile Money: Paystack flow will be executed by checkout component
+      setOrderPlacementState(true, "redirecting");
+      return {
+        success: true,
+        orderId,
+        orderNumber,
+        paymentRequired: true,
+        paymentMethod: selectedPaymentMethod,
+      };
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
