@@ -19,12 +19,15 @@ export const PAYMENT_STATUSES = {
 
 // Payment methods
 export const PAYMENT_METHODS = {
-  CASH_ON_DELIVERY: "cash_on_delivery",
-  STRIPE: "stripe",
-  CLERK: "clerk",
   CARD: "card",
-  MOBILE_MONEY: "mobile_money",
-  PAY_ON_DELIVERY: "pay_on_delivery",
+  MOBILE_MONEY: "momo",
+  PAY_ON_DELIVERY: "cod",
+} as const;
+
+// Payment gateways
+export const PAYMENT_GATEWAYS = {
+  PAYSTACK: "paystack",
+  NONE: "none",
 } as const;
 
 export type OrderStatus = (typeof ORDER_STATUSES)[keyof typeof ORDER_STATUSES];
@@ -32,3 +35,5 @@ export type PaymentStatus =
   (typeof PAYMENT_STATUSES)[keyof typeof PAYMENT_STATUSES];
 export type PaymentMethod =
   (typeof PAYMENT_METHODS)[keyof typeof PAYMENT_METHODS];
+export type PaymentGateway =
+  (typeof PAYMENT_GATEWAYS)[keyof typeof PAYMENT_GATEWAYS];

@@ -32,12 +32,7 @@ import { OrderAddressSelector } from "@/components/checkout/OrderAddressSelector
 import { useOrderPlacement } from "@/hooks/useOrderPlacement";
 import { CheckoutSkeleton } from "@/components/checkout/CheckoutSkeleton";
 import { OrderPlacementOverlay } from "@/components/cart/OrderPlacementSkeleton";
-import { 
-  Dialog,
-  DialogContent,
-  DialogTitle,
- } from "@repo/ui";
-import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
+import { validateMomoPhone } from "@/lib/validators";
 
 interface OrderAddress {
   _id: string;
@@ -67,15 +62,10 @@ export function CheckoutContent() {
     user: user!,
   });
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
-    useState<PaymentMethod>(PAYMENT_METHODS.STRIPE);
-  const [selectedNetwork, setSelectedNetwork] = useState<string>("");
+    useState<PaymentMethod>(PAYMENT_METHODS.CARD);
   const [momoPhoneNumber, setMomoPhoneNumber] = useState("");
-  const [cardDetails, setCardDetails] = useState({
-    cardNumber: "",
-    expiryDate: "",
-    cvv: "",
-    cardholderName: "",
-  });
+  const [momoPhoneError, setMomoPhoneError] = useState("");
+  const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{
     code: string;
@@ -96,7 +86,6 @@ export function CheckoutContent() {
     isBusiness: boolean;
     isActive: boolean;
   } | null>(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Real pricing structure based on live cart items from Sanity
   const grossSubtotal = getSubTotalPrice(); // Gross amount (before discount)
@@ -274,76 +263,124 @@ export function CheckoutContent() {
     };
   }, [cart, hasInitialCart, isLoaded]);
 
-  const handlePayNowClick = () => {
-    if (!selectedAddress) {
-      toast.error("Please select a shipping address");
-      return;
-    }
-    setShowPaymentModal(true);
-  };
-
-  const handlePaymentMethodSelect = async (method: "stripe" | "clerk") => {
-    setShowPaymentModal(false);
-
-    if (method === "clerk") {
-      // Process Clerk payment
-      await handlePlaceOrder("pay", "clerk");
-    } else {
-      // Process Stripe payment
-      await handlePlaceOrder("pay", "stripe");
-    }
-  };
-
-  const handlePlaceOrder = async (
-    action: "pay" | "order",
-    paymentGateway?: "stripe" | "clerk",
-  ) => {
+  const handlePayNow = async () => {
     if (!selectedAddress) {
       toast.error("Please select a shipping address");
       return;
     }
 
-    setActionType(action);
-
-    // Determine payment method based on action and gateway
-    let paymentMethodToUse = selectedPaymentMethod;
-    if (action === "pay" && paymentGateway === "clerk") {
-      paymentMethodToUse = PAYMENT_METHODS.CLERK;
-    } else if (action === "pay" && paymentGateway === "stripe") {
-      paymentMethodToUse = PAYMENT_METHODS.STRIPE;
+    if (selectedPaymentMethod === PAYMENT_METHODS.MOBILE_MONEY) {
+      if (!momoPhoneNumber.trim()) {
+        setMomoPhoneError("Please enter your Mobile Money phone number");
+        return;
+      }
+      if (!validateMomoPhone(momoPhoneNumber)) {
+        setMomoPhoneError(
+          "Please enter a valid 10-digit Ghana phone number (e.g. 024XXXXXXX)"
+        );
+        return;
+      }
+      setMomoPhoneError("");
     }
 
-    const result = await placeOrder(
-      selectedAddress,
-      paymentMethodToUse,
-      finalSubtotal, // Pass final subtotal (includes business discount)
-      shipping,
-      tax,
-      total,
+    setIsInitiatingPayment(true);
+    setActionType(
+      selectedPaymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY ? "order" : "pay"
     );
 
-    if (result?.success && result.redirectTo) {
-      setIsRedirecting(true);
-      if (
-        action === "pay" &&
-        (result.isStripeRedirect || result.isClerkRedirect)
-      ) {
-        // Direct payment - clear cart and redirect
-        resetCart();
-        window.location.href = result.redirectTo;
-      } else {
-        // Order placed - clear cart and redirect with appropriate delay
-        setTimeout(
-          () => {
-            resetCart();
-            window.location.href = result.redirectTo;
-          },
-          action === "order" ? 1500 : 500,
-        );
-      }
-    }
+    try {
+      const result = await placeOrder(
+        selectedAddress,
+        selectedPaymentMethod,
+        finalSubtotal,
+        shipping,
+        tax,
+        total
+      );
 
-    setActionType(null);
+      if (!result || !result.success) {
+        setIsInitiatingPayment(false);
+        setActionType(null);
+        return;
+      }
+
+      // Cash on Delivery flow
+      if (result.isCOD || result.redirectTo) {
+        setIsRedirecting(true);
+        resetCart();
+        window.location.href = result.redirectTo!;
+        return;
+      }
+
+      // Paystack flow (Card or MoMo)
+      if (result.paymentRequired) {
+        const userEmail = user?.emailAddresses?.[0]?.emailAddress || "";
+        const channel =
+          selectedPaymentMethod === PAYMENT_METHODS.CARD ? "card" : "momo";
+
+        const initRes = await fetch("/api/checkout/paystack", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId: result.orderId,
+            orderNumber: result.orderNumber,
+            amount: total,
+            email: userEmail,
+            channel,
+            ...(channel === "momo" && { phone: momoPhoneNumber.trim() }),
+          }),
+        });
+
+        const initData = await initRes.json();
+
+        if (!initRes.ok || !initData.authorizationUrl) {
+          toast.error(initData.error || "Failed to initialize payment");
+          setIsInitiatingPayment(false);
+          setActionType(null);
+          return;
+        }
+
+        if (channel === "card") {
+          // Dynamically import @paystack/inline-js to avoid SSR errors
+          const PaystackPop = (await import("@paystack/inline-js")).default;
+          const paystack = new PaystackPop();
+          const publicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY;
+
+          paystack.newTransaction({
+            key: publicKey || "",
+            email: userEmail,
+            amount: Math.round(total * 100),
+            currency: "GHS",
+            reference: initData.reference,
+            accessCode: initData.accessCode,
+            onSuccess: (transaction: { reference: string }) => {
+              resetCart();
+              setIsRedirecting(true);
+              window.location.href = `/api/checkout/paystack/callback?reference=${encodeURIComponent(
+                transaction.reference
+              )}`;
+            },
+            onCancel: () => {
+              setIsInitiatingPayment(false);
+              setActionType(null);
+              toast.info(
+                "Payment cancelled. You can try again whenever you're ready."
+              );
+            },
+          });
+        } else {
+          // Mobile Money: full-page redirect to Paystack authorizationUrl
+          resetCart();
+          setIsRedirecting(true);
+          window.location.href = initData.authorizationUrl;
+        }
+      }
+    } catch (err) {
+      console.error("Payment initiation error:", err);
+      toast.error("Failed to complete checkout. Please try again.");
+      setIsInitiatingPayment(false);
+      setActionType(null);
+    }
   };
 
   if (!isLoaded) {
@@ -412,113 +449,58 @@ export function CheckoutContent() {
               value={selectedPaymentMethod}
               onValueChange={(value) => {
                 setSelectedPaymentMethod(value as PaymentMethod);
-                // Reset sub-selections when switching methods
                 if (value !== PAYMENT_METHODS.MOBILE_MONEY) {
-                  setSelectedNetwork("");
                   setMomoPhoneNumber("");
+                  setMomoPhoneError("");
                 }
               }}
               className="space-y-3"
             >
               {/* Credit/Debit Card */}
-              <div className={`flex items-start space-x-3 p-3 border rounded-lg transition-colors ${selectedPaymentMethod === PAYMENT_METHODS.STRIPE ? "border-ushop-pink bg-ushop_light_pink/30" : "hover:border-gray-300"}`}>
+              <div
+                className={`flex items-start space-x-3 p-3 border rounded-lg transition-colors ${
+                  selectedPaymentMethod === PAYMENT_METHODS.CARD
+                    ? "border-ushop-pink bg-ushop_light_pink/30"
+                    : "hover:border-gray-300"
+                }`}
+              >
                 <RadioGroupItem
-                  value={PAYMENT_METHODS.STRIPE}
-                  id="stripe"
+                  value={PAYMENT_METHODS.CARD}
+                  id="card"
                   className="mt-1 accent-ushop-purple"
                 />
                 <div className="flex-1">
-                  <Label htmlFor="stripe" className="cursor-pointer">
+                  <Label htmlFor="card" className="cursor-pointer">
                     <div className="flex items-center gap-2 font-medium">
                       <CreditCard className="w-4 h-4 text-ushop-purple-dark" />
-                      Credit/Debit Card
+                      Credit / Debit Card
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Pay securely with your credit or debit card
+                      Pay securely with Visa or Mastercard via Paystack popup
                     </p>
                   </Label>
                 </div>
               </div>
 
-              {/* Card Details Section */}
-              {selectedPaymentMethod === PAYMENT_METHODS.STRIPE && (
-                <div className="ml-0 mt-3 sm:ml-7 p-4 border border-dashed border-ushop-pink/40 rounded-lg bg-ushop_light_pink/10 space-y-4 animate-in slide-in-from-top-2 duration-300">
-                  <p className="text-sm font-medium text-ushop-purple-dark">Enter Card Details</p>
-                  <div className="space-y-3">
-                    <div>
-                      <Label htmlFor="cardholderName" className="text-xs text-muted-foreground mb-1 block">Cardholder Name</Label>
-                      <Input
-                        id="cardholderName"
-                        placeholder="John Doe"
-                        value={cardDetails.cardholderName}
-                        onChange={(e) => setCardDetails(prev => ({ ...prev, cardholderName: e.target.value }))}
-                        className="h-10"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="cardNumber" className="text-xs text-muted-foreground mb-1 block">Card Number</Label>
-                      <div className="relative">
-                        <Input
-                          id="cardNumber"
-                          placeholder="0000 0000 0000 0000"
-                          value={cardDetails.cardNumber}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, "").slice(0, 16);
-                            const formatted = val.replace(/(\d{4})(?=\d)/g, "$1 ");
-                            setCardDetails(prev => ({ ...prev, cardNumber: formatted }));
-                          }}
-                          className="h-10 pr-14"
-                          maxLength={19}
-                        />
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                          <Image
-                            src="/assets/icons/payment/visa.png"
-                            alt="Visa"
-                            width={32}
-                            height={20}
-                            className="opacity-60"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label htmlFor="expiryDate" className="text-xs text-muted-foreground mb-1 block">Expiry Date</Label>
-                        <Input
-                          id="expiryDate"
-                          placeholder="MM/YY"
-                          value={cardDetails.expiryDate}
-                          onChange={(e) => {
-                            let val = e.target.value.replace(/\D/g, "").slice(0, 4);
-                            if (val.length >= 3) val = val.slice(0, 2) + "/" + val.slice(2);
-                            setCardDetails(prev => ({ ...prev, expiryDate: val }));
-                          }}
-                          className="h-10"
-                          maxLength={5}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="cvv" className="text-xs text-muted-foreground mb-1 block">CVV</Label>
-                        <Input
-                          id="cvv"
-                          placeholder="123"
-                          value={cardDetails.cvv}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, "").slice(0, 4);
-                            setCardDetails(prev => ({ ...prev, cvv: val }));
-                          }}
-                          className="h-10"
-                          maxLength={4}
-                          type="password"
-                        />
-                      </div>
-                    </div>
-                  </div>
+              {selectedPaymentMethod === PAYMENT_METHODS.CARD && (
+                <div className="ml-0 mt-3 sm:ml-7 p-4 border border-dashed border-ushop-pink/40 rounded-lg bg-ushop_light_pink/10 space-y-1.5 animate-in slide-in-from-top-2 duration-300">
+                  <p className="text-sm font-medium text-ushop-purple-dark">
+                    Secure Card Payment
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Clicking &quot;Pay Now&quot; will securely launch the Paystack payment popup. No card details are ever saved on our servers.
+                  </p>
                 </div>
               )}
 
               {/* Mobile Money */}
-              <div className={`flex items-start space-x-3 p-3 border rounded-lg transition-colors ${selectedPaymentMethod === PAYMENT_METHODS.MOBILE_MONEY ? "border-ushop-pink bg-ushop_light_pink/30" : "hover:border-gray-300"}`}>
+              <div
+                className={`flex items-start space-x-3 p-3 border rounded-lg transition-colors ${
+                  selectedPaymentMethod === PAYMENT_METHODS.MOBILE_MONEY
+                    ? "border-ushop-pink bg-ushop_light_pink/30"
+                    : "hover:border-gray-300"
+                }`}
+              >
                 <RadioGroupItem
                   value={PAYMENT_METHODS.MOBILE_MONEY}
                   id="mobile_money"
@@ -531,78 +513,61 @@ export function CheckoutContent() {
                       Mobile Money
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Pay with MTN MoMo, AirtelTigo Money, or Telecel Cash
+                      Pay with MTN MoMo, Telecel Cash, or AT Money
                     </p>
                   </Label>
                 </div>
               </div>
 
-              {/* Mobile Money Network & Phone Section */}
+              {/* Mobile Money Phone Input Section */}
               {selectedPaymentMethod === PAYMENT_METHODS.MOBILE_MONEY && (
-                <div className="ml-0 mt-3 sm:ml-7 p-4 border border-dashed border-ushop-pink/40 rounded-lg bg-ushop_light_pink/10 space-y-4 animate-in slide-in-from-top-2 duration-300">
-                  <p className="text-sm font-medium text-ushop-purple-dark">Choose Your Network</p>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { id: "mtn", name: "MTN MoMo", icon: "/assets/icons/payment/Momo.png" },
-                      { id: "airteltigo", name: "AirtelTigo", icon: "/assets/icons/payment/At.png" },
-                      { id: "telecel", name: "Telecel", icon: "/assets/icons/payment/Telecel.png" },
-                    ].map((network) => (
-                      <button
-                        key={network.id}
-                        type="button"
-                        onClick={() => setSelectedNetwork(network.id)}
-                        className={`flex flex-col items-center gap-2 p-3 border-2 rounded-xl transition-all duration-200 cursor-pointer ${
-                          selectedNetwork === network.id
-                            ? "border-ushop-pink bg-ushop_light_pink/40 shadow-md shadow-pink-200/50 scale-[1.02]"
-                            : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                        }`}
-                      >
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center overflow-hidden transition-all ${
-                          selectedNetwork === network.id ? "ring-2 ring-ushop-pink ring-offset-2" : ""
-                        }`}>
-                          <Image
-                            src={network.icon}
-                            alt={network.name}
-                            width={48}
-                            height={48}
-                            className="w-full h-full object-contain p-1"
-                          />
-                        </div>
-                        <span className={`text-xs font-medium text-center leading-tight ${
-                          selectedNetwork === network.id ? "text-ushop-purple-dark" : "text-gray-600"
-                        }`}>
-                          {network.name}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Phone Number Input */}
-                  <div className="space-y-2">
-                    <Label htmlFor="momoPhone" className="text-xs text-muted-foreground">Mobile Money Number</Label>
+                <div className="ml-0 mt-3 sm:ml-7 p-4 border border-dashed border-ushop-pink/40 rounded-lg bg-ushop_light_pink/10 space-y-3 animate-in slide-in-from-top-2 duration-300">
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="momoPhone"
+                      className="text-xs font-medium text-ushop-purple-dark"
+                    >
+                      Mobile Money Phone Number (Ghana)
+                    </Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">+233</span>
                       <Input
                         id="momoPhone"
-                        placeholder="24 XXX XXXX"
+                        placeholder="024XXXXXXX"
                         value={momoPhoneNumber}
                         onChange={(e) => {
                           const val = e.target.value.replace(/\D/g, "").slice(0, 10);
                           setMomoPhoneNumber(val);
+                          if (momoPhoneError) setMomoPhoneError("");
                         }}
-                        className="h-11 pl-14 text-base"
+                        className={`h-11 text-base ${
+                          momoPhoneError
+                            ? "border-red-500 focus-visible:ring-red-500"
+                            : ""
+                        }`}
                         maxLength={10}
                       />
                     </div>
-                    {selectedNetwork && momoPhoneNumber.length > 0 && momoPhoneNumber.length < 9 && (
-                      <p className="text-xs text-amber-600">Please enter a valid phone number</p>
+                    {momoPhoneError ? (
+                      <p className="text-xs text-red-500 font-medium">
+                        {momoPhoneError}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Enter your 10-digit number (e.g. 024, 054, 055, 059, 027, 026, 028, 057, 025). You will approve payment on your device.
+                      </p>
                     )}
                   </div>
                 </div>
               )}
 
               {/* Pay on Delivery */}
-              <div className={`flex items-start space-x-3 p-3 border rounded-lg transition-colors ${selectedPaymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY ? "border-ushop-pink bg-ushop_light_pink/30" : "hover:border-gray-300"}`}>
+              <div
+                className={`flex items-start space-x-3 p-3 border rounded-lg transition-colors ${
+                  selectedPaymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY
+                    ? "border-ushop-pink bg-ushop_light_pink/30"
+                    : "hover:border-gray-300"
+                }`}
+              >
                 <RadioGroupItem
                   value={PAYMENT_METHODS.PAY_ON_DELIVERY}
                   id="pay_on_delivery"
@@ -627,8 +592,12 @@ export function CheckoutContent() {
                   <div className="flex items-start gap-2">
                     <Package className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                     <div className="space-y-1">
-                      <p className="text-sm font-medium text-amber-800">Pay when you receive your order</p>
-                      <p className="text-xs text-amber-700">Have the exact amount ready. Our delivery agent will collect payment upon delivery.</p>
+                      <p className="text-sm font-medium text-amber-800">
+                        Pay when you receive your order
+                      </p>
+                      <p className="text-xs text-amber-700">
+                        Have the exact amount ready. Our delivery agent will collect payment upon delivery.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -892,23 +861,19 @@ export function CheckoutContent() {
 
         <div className="space-y-3">
           <Button
-            onClick={
-              selectedPaymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY
-                ? () => handlePlaceOrder("order")
-                : selectedPaymentMethod === PAYMENT_METHODS.MOBILE_MONEY
-                  ? () => handlePlaceOrder("pay")
-                  : handlePayNowClick
-            }
+            onClick={handlePayNow}
             disabled={
               isPlacingOrder ||
+              isInitiatingPayment ||
               !selectedAddress ||
               cart.length === 0 ||
-              (selectedPaymentMethod === PAYMENT_METHODS.MOBILE_MONEY && (!selectedNetwork || momoPhoneNumber.length < 9))
+              (selectedPaymentMethod === PAYMENT_METHODS.MOBILE_MONEY &&
+                !validateMomoPhone(momoPhoneNumber))
             }
             className="w-full h-12 text-lg font-semibold bg-ushop-purple-dark hover:bg-ushop-purple text-white shadow-md shadow-purple-900/10 cursor-pointer transition-colors"
             size="lg"
           >
-            {isPlacingOrder && (actionType === "pay" || actionType === "order") ? (
+            {isPlacingOrder || isInitiatingPayment ? (
               <div className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Processing...
@@ -945,46 +910,6 @@ export function CheckoutContent() {
           isCheckoutRedirect={actionType === "pay"}
         />
       )}
-
-      {/* Payment Method Selection Modal */}
-      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
-        <DialogContent className="max-w-md">
-          <VisuallyHidden.Root>
-            <DialogTitle>Select Payment Method</DialogTitle>
-          </VisuallyHidden.Root>
-          <div className="text-center space-y-4">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-ushop_light_pink border-4 border-ushop-pink/20">
-              <CreditCard className="h-8 w-8 text-ushop-purple-dark" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-xl font-bold text-gray-900">
-                Choose Payment Method
-              </h3>
-              <p className="text-gray-600 leading-relaxed">
-                Select your preferred payment gateway to complete your order
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-col gap-3 pt-6">
-            <Button
-              onClick={() => handlePaymentMethodSelect("stripe")}
-              className="w-full h-12 bg-ushop-purple-dark hover:bg-ushop-purple text-white font-semibold shadow-md hover:shadow-purple-900/20"
-              disabled={isPlacingOrder}
-            >
-              <CreditCard className="w-5 h-5 mr-2" />
-              Pay with Stripe
-            </Button>
-            <Button
-              onClick={() => handlePaymentMethodSelect("clerk")}
-              className="w-full h-12 bg-ushop-pink hover:bg-ushop-pink/90 text-white font-semibold shadow-md hover:shadow-pink-900/20"
-              disabled={isPlacingOrder}
-            >
-              <Wallet className="w-5 h-5 mr-2" />
-              Pay using Clerk
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

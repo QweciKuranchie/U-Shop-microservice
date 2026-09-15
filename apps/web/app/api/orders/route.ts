@@ -6,6 +6,8 @@ import {
   ORDER_STATUSES,
   PAYMENT_STATUSES,
   PAYMENT_METHODS,
+  PAYMENT_GATEWAYS,
+  PaymentMethod,
 } from "@/lib/orderStatus";
 import crypto from "crypto";
 import { sendOrderStatusNotification } from "@/lib/notificationService";
@@ -18,6 +20,82 @@ interface CartItem {
     category?: string;
   };
   quantity: number;
+}
+
+export interface BuildOrderDataInput {
+  orderNumber: string;
+  customerName: string;
+  email: string;
+  phone: string;
+  clerkUserId: string;
+  items: Array<{
+    product: { _id: string; price?: number };
+    quantity: number;
+  }>;
+  shippingAddress: {
+    _id: string;
+    name?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    phone?: string;
+  };
+  paymentMethod: PaymentMethod;
+  totalAmount: number;
+  subtotal: number;
+  shipping: number;
+  tax: number;
+}
+
+export function buildOrderData(input: BuildOrderDataInput) {
+  const isPaystack =
+    input.paymentMethod === PAYMENT_METHODS.CARD ||
+    input.paymentMethod === PAYMENT_METHODS.MOBILE_MONEY;
+
+  return {
+    _type: "order" as const,
+    orderNumber: input.orderNumber,
+    customerName: input.customerName,
+    email: input.email,
+    phone: input.phone,
+    clerkUserId: input.clerkUserId,
+    items: input.items.map((item) => ({
+      _key: crypto.randomUUID(),
+      product: {
+        _type: "reference",
+        _ref: item.product._id,
+      },
+      quantity: item.quantity,
+      price: item.product.price ?? 0,
+    })),
+    totalPrice: input.totalAmount,
+    currency: "GHS",
+    amountDiscount: 0,
+    shippingAddress: {
+      _type: "reference",
+      _ref: input.shippingAddress._id,
+    },
+    address: {
+      _type: "object",
+      name: input.shippingAddress.name || "",
+      address: input.shippingAddress.address || "",
+      city: input.shippingAddress.city || "",
+      state: input.shippingAddress.state || "",
+      zip: input.shippingAddress.zip || "",
+    },
+    orderStatus: ORDER_STATUSES.PENDING,
+    status: ORDER_STATUSES.PENDING,
+    orderDate: new Date().toISOString(),
+    paymentMethod: input.paymentMethod,
+    paymentStatus: PAYMENT_STATUSES.PENDING,
+    paymentGateway: isPaystack
+      ? PAYMENT_GATEWAYS.PAYSTACK
+      : PAYMENT_GATEWAYS.NONE,
+    subtotal: input.subtotal,
+    shipping: input.shipping,
+    tax: input.tax,
+  };
 }
 
 export async function GET() {
@@ -66,9 +144,9 @@ export const POST = async (request: NextRequest) => {
       return NextResponse.json({ error: "No items provided" }, { status: 400 });
     }
 
-    if (!shippingAddress) {
+    if (!shippingAddress || !shippingAddress._id) {
       return NextResponse.json(
-        { error: "Shipping address is required" },
+        { error: "Valid shipping address is required" },
         { status: 400 }
       );
     }
@@ -89,65 +167,27 @@ export const POST = async (request: NextRequest) => {
       .substr(2, 9)
       .toUpperCase()}`;
 
-    const userEmail = user.emailAddresses[0]?.emailAddress;
+    const userEmail = user.emailAddresses[0]?.emailAddress || "";
     const userName =
       `${user.firstName || ""} ${user.lastName || ""}`.trim() || "User";
     const userPhone =
       user.phoneNumbers?.[0]?.phoneNumber || shippingAddress.phone || "";
 
-    // Create order object
-    const orderData = {
-      _type: "order" as const,
+    // Create order object using pure helper
+    const orderData = buildOrderData({
       orderNumber,
       customerName: userName,
       email: userEmail,
       phone: userPhone,
       clerkUserId: userId,
-      products: items.map(
-        (item: { product: { _id: string }; quantity: number }) => ({
-          _key: crypto.randomUUID(), // Generate unique key for each product item
-          product: {
-            _type: "reference",
-            _ref: item.product._id,
-          },
-          quantity: item.quantity,
-        })
-      ),
-      totalPrice: totalAmount,
-      currency: "GHS",
-      amountDiscount: 0, // Can be calculated if you have discount logic
-      address: {
-        _type: "object",
-        name: shippingAddress.name,
-        address: shippingAddress.address,
-        city: shippingAddress.city,
-        state: shippingAddress.state,
-        zip: shippingAddress.zip,
-      },
-      status: ORDER_STATUSES.PENDING,
-      orderDate: new Date().toISOString(),
+      items,
+      shippingAddress,
       paymentMethod,
-      paymentStatus:
-        paymentMethod === PAYMENT_METHODS.CASH_ON_DELIVERY
-          ? PAYMENT_STATUSES.PENDING
-          : PAYMENT_STATUSES.PENDING,
+      totalAmount,
       subtotal,
       shipping,
       tax,
-      // Add payment-specific fields based on payment method
-      ...(paymentMethod === PAYMENT_METHODS.STRIPE && {
-        stripeCustomerId: "", // Will be populated when needed for invoicing
-        stripePaymentIntentId: "", // Will be populated for Stripe payments
-        stripeCheckoutSessionId: "", // Will be populated for Stripe payments
-      }),
-      ...(paymentMethod === PAYMENT_METHODS.CLERK && {
-        clerkPaymentId: "", // Will be populated for Clerk payments
-        clerkPaymentStatus: "pending", // Initial status
-      }),
-      ...(paymentMethod === PAYMENT_METHODS.CASH_ON_DELIVERY && {
-        stripePaymentIntentId: `cod_${orderNumber}`,
-      }),
-    };
+    });
 
     // Create order in Sanity using writeClient (has create permissions)
     const createdOrder = await writeClient.create(orderData);
@@ -167,7 +207,7 @@ export const POST = async (request: NextRequest) => {
               orderId: createdOrder._id,
               orderNumber: createdOrder.orderNumber,
               amount: totalAmount,
-              status: createdOrder.status,
+              status: createdOrder.orderStatus || createdOrder.status,
               userId: userId,
               paymentMethod: paymentMethod,
               itemCount: items.length,
@@ -229,7 +269,6 @@ export const POST = async (request: NextRequest) => {
         "Failed to send order confirmation notification:",
         notificationError
       );
-      // Don't fail the order creation if notification fails
     }
 
     return NextResponse.json({
@@ -237,7 +276,7 @@ export const POST = async (request: NextRequest) => {
       order: {
         _id: createdOrder._id,
         orderNumber: createdOrder.orderNumber,
-        status: createdOrder.status,
+        status: createdOrder.orderStatus || createdOrder.status,
         paymentMethod: createdOrder.paymentMethod,
         totalPrice: createdOrder.totalPrice,
         currency: createdOrder.currency,
@@ -248,10 +287,6 @@ export const POST = async (request: NextRequest) => {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     console.error("Order creation error:", error);
-    console.error("Error details:", {
-      message: errorMessage,
-      stack: error instanceof Error ? error.stack : null,
-    });
     return NextResponse.json(
       {
         error: errorMessage || "Failed to create order",
