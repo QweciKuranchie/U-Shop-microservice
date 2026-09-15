@@ -67,6 +67,7 @@
     "embla-carousel-react": "^8.6.0",
     "firebase": "^12.16.0",
     "framer-motion": "^12.23.19",
+    "google-auth-library": "^9.0.0",
     "js-isarray": "^1.0.4",
     "lodash": "^4.17.21",
     "lucide-react": "^1.23.0",

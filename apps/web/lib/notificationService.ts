@@ -25,6 +25,9 @@ interface OrderStatusNotificationParams {
   orderId: string;
   status: string;
   previousStatus?: string;
+  trackingNote?: string;
+  customerName?: string;
+  customerEmail?: string;
 }
 
 /**
@@ -188,15 +191,32 @@ const getOrderStatusMessage = (
   }
 };
 
+const KEY_MILESTONE_STATUSES = new Set([
+  "processing",
+  "paid",
+  "shipped",
+  "out_for_delivery",
+  "delivered",
+  "cancelled",
+]);
+
 /**
- * Send order status notification to user
+ * Send order status notification to user across channels (In-app, Email, FCM Push)
  */
 export const sendOrderStatusNotification = async (
   params: OrderStatusNotificationParams
 ) => {
   try {
-    const { clerkUserId, orderNumber, orderId, status, previousStatus } =
-      params;
+    const {
+      clerkUserId,
+      orderNumber,
+      orderId,
+      status,
+      previousStatus,
+      trackingNote,
+      customerName,
+      customerEmail,
+    } = params;
 
     const { title, message, priority } = getOrderStatusMessage(
       status,
@@ -204,11 +224,29 @@ export const sendOrderStatusNotification = async (
       previousStatus
     );
 
-    // Get base URL from environment or fallback to localhost
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://ushopgh.com";
     const actionUrl = `${baseUrl}/user/orders/${orderId}`;
 
-    const result = await createNotification({
+    // Fetch user preferences and FCM token from Sanity
+    const user = await writeClient.fetch<{
+      _id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      fcmToken?: string;
+      preferences?: {
+        emailNotifications?: boolean;
+        pushNotifications?: boolean;
+      };
+    } | null>(
+      `*[_type == "user" && clerkUserId == $clerkUserId][0]{
+        _id, email, firstName, lastName, fcmToken, preferences
+      }`,
+      { clerkUserId }
+    );
+
+    // 1. Always create in-app notification (no gate)
+    const notificationResult = await createNotification({
       clerkUserId,
       title,
       message,
@@ -218,7 +256,66 @@ export const sendOrderStatusNotification = async (
       sentBy: "U-Shop System",
     });
 
-    return result;
+    const resolvedEmail = customerEmail || user?.email || "";
+    const resolvedName =
+      customerName ||
+      (user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "") ||
+      "Customer";
+
+    const isMilestone = KEY_MILESTONE_STATUSES.has(status.toLowerCase());
+    const tasks: Promise<unknown>[] = [];
+
+    // 2. Email — gate on preference & milestone status
+    if (
+      isMilestone &&
+      user?.preferences?.emailNotifications !== false &&
+      resolvedEmail
+    ) {
+      const { sendOrderStatusEmail } = await import("./emailService");
+      tasks.push(
+        sendOrderStatusEmail({
+          orderId: orderNumber,
+          customerName: resolvedName,
+          customerEmail: resolvedEmail,
+          newStatus: status,
+          trackingNote,
+        })
+      );
+    }
+
+    // 3. Push — gate on preference, token presence & milestone status
+    if (
+      isMilestone &&
+      user?.preferences?.pushNotifications === true &&
+      user?.fcmToken
+    ) {
+      const { sendPushNotification } = await import("./fcmService");
+      const pushBody =
+        trackingNote && status.toLowerCase() === "shipped"
+          ? `${message} Tracking: ${trackingNote}`
+          : message;
+
+      tasks.push(
+        sendPushNotification({
+          token: user.fcmToken,
+          title,
+          body: pushBody,
+          actionUrl,
+        }).then(async (result) => {
+          if (!result.success && result.staleToken && user._id) {
+            await writeClient
+              .patch(user._id)
+              .unset(["fcmToken"])
+              .commit()
+              .catch((err) => console.error("Failed to clear stale FCM token:", err));
+          }
+        })
+      );
+    }
+
+    await Promise.allSettled(tasks);
+
+    return notificationResult;
   } catch (error) {
     console.error("Error sending order status notification:", error);
     return { success: false, error: "Failed to send notification" };

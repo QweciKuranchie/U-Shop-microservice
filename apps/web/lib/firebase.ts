@@ -32,4 +32,25 @@ if (typeof window !== "undefined") {
 }
 
 const auth = getAuth(app);
+
+import type { Messaging } from "firebase/messaging";
+
+let messagingInstance: Messaging | null = null;
+
+export function getMessagingInstance(): Messaging | null {
+  if (typeof window === "undefined") return null;
+
+  if (messagingInstance) return messagingInstance;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getMessaging } = require("firebase/messaging") as typeof import("firebase/messaging");
+    messagingInstance = getMessaging(app);
+    return messagingInstance;
+  } catch (error) {
+    console.error("Failed to initialise Firebase Messaging:", error);
+    return null;
+  }
+}
+
 export { app, analytics, auth };

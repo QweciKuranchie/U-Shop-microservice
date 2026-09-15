@@ -65,8 +65,157 @@ interface SendMailParams {
   html?: string;
 }
 
+export function formatCurrency(amount: number, country: string = "Ghana"): string {
+  const normalizedCountry = (country || "Ghana").toLowerCase();
+  if (normalizedCountry === "ghana" || normalizedCountry === "gh") {
+    return new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS" }).format(amount);
+  }
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+}
+
+export interface OrderStatusEmailParams {
+  orderId: string;
+  customerName: string;
+  customerEmail: string;
+  newStatus: string;
+  trackingNote?: string;
+}
+
+const STATUS_EMAIL_CONFIG: Record<
+  string,
+  {
+    subject: (id: string) => string;
+    heading: string;
+    body: (id: string, note?: string) => string;
+  }
+> = {
+  processing: {
+    subject: (id) => `Your order #${id} is being processed ⚙️`,
+    heading: "Your order is being processed",
+    body: (id) =>
+      `Your order #${id} is being prepared. We'll notify you once it ships.`,
+  },
+  paid: {
+    subject: (id) => `Payment confirmed for order #${id} ✅`,
+    heading: "Payment confirmed!",
+    body: (id) =>
+      `We've received your payment for order #${id}. Your order will be processed shortly.`,
+  },
+  shipped: {
+    subject: (id) => `Your order #${id} has shipped! 🚚`,
+    heading: "Your order has shipped!",
+    body: (id, note) =>
+      `Great news! Order #${id} is on its way.${
+        note ? ` Tracking info: ${note}` : " You'll receive tracking details soon."
+      }`,
+  },
+  out_for_delivery: {
+    subject: (id) => `Your order #${id} is out for delivery 🛵`,
+    heading: "Out for delivery today!",
+    body: (id) =>
+      `Your order #${id} is with our delivery partner and should arrive today. Please be available to receive it.`,
+  },
+  delivered: {
+    subject: (id) => `Order #${id} delivered ✅`,
+    heading: "Your order has been delivered!",
+    body: (id) =>
+      `Order #${id} has been delivered. We hope you enjoy your purchase! Feel free to leave a review.`,
+  },
+  cancelled: {
+    subject: (id) => `Your order #${id} has been cancelled`,
+    heading: "Order cancelled",
+    body: (id, note) =>
+      `Your order #${id} has been cancelled.${
+        note ? ` Reason: ${note}` : ""
+      } If you paid online, a refund will be processed to your wallet within 1–3 business days.`,
+  },
+};
+
+const sendOrderStatusEmail = async (
+  params: OrderStatusEmailParams
+): Promise<EmailResponse> => {
+  const { orderId, customerName, customerEmail, newStatus, trackingNote } = params;
+  const config = STATUS_EMAIL_CONFIG[newStatus.toLowerCase()];
+
+  if (!config) {
+    console.warn(`sendOrderStatusEmail: no template for status "${newStatus}"`);
+    return { success: false, error: `No template for status: ${newStatus}` };
+  }
+
+  const subject = config.subject(orderId);
+  const heading = config.heading;
+  const bodyText = config.body(orderId, trackingNote);
+  const senderEmail = getSenderEmail();
+  const resend = getResendClient();
+  const fromAddress = senderEmail.includes("<")
+    ? senderEmail
+    : `UShop <${senderEmail}>`;
+
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://ushopgh.com";
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f8f9fa; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; background: #fff; }
+    .header { background: linear-gradient(135deg, #063c28 0%, #3b9c3c 100%); color: #fff; padding: 30px 20px; text-align: center; }
+    .header h1 { font-size: 24px; margin: 0 0 8px; }
+    .content { padding: 30px 20px; }
+    .status-box { background: #e8f5e8; border: 1px solid #c3e6cb; border-radius: 8px; padding: 20px; margin: 20px 0; }
+    .footer { background: #343a40; color: #fff; padding: 20px; text-align: center; font-size: 13px; }
+    a { color: #3b9c3c; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>${heading}</h1>
+      <p>UShop Order Update</p>
+    </div>
+    <div class="content">
+      <p>Hi ${customerName},</p>
+      <div class="status-box">
+        <p>${bodyText}</p>
+      </div>
+      <p>You can track your order at <a href="${baseUrl}/user/orders">My Orders</a>.</p>
+      <p>Thank you for shopping with UShop!</p>
+    </div>
+    <div class="footer">
+      <p>UShop &bull; Accra, Ghana &bull; <a href="mailto:support@ushopgh.com" style="color:#aaa">support@ushopgh.com</a></p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  try {
+    const { data: resData, error } = await resend.emails.send({
+      from: fromAddress,
+      to: [customerEmail],
+      subject,
+      html,
+      text: `Hi ${customerName},\n\n${bodyText}\n\nTrack your order: ${baseUrl}/user/orders\n\nThank you for shopping with UShop!`,
+    });
+
+    if (error) {
+      console.error("Resend error sending order status email:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, messageId: resData?.id };
+  } catch (error) {
+    console.error("Failed to send order status email:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
+};
+
 const generateOrderConfirmationHTML = (data: OrderConfirmationData): string => {
-  const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`;
+  const country = data.shippingAddress?.country || "Ghana";
 
   return `
 <!DOCTYPE html>
@@ -739,7 +888,7 @@ const sendMail = async ({
   }
 };
 
-export { sendOrderConfirmationEmail, sendMail };
+export { sendOrderConfirmationEmail, sendOrderStatusEmail, sendMail };
 export type {
   OrderConfirmationData,
   OrderItem,

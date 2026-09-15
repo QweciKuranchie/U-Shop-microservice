@@ -20,44 +20,47 @@ export async function GET() {
           ordersCount: 0,
           unreadNotifications: 0,
           walletBalance: 0,
+          preferences: {},
           authenticated: false,
         },
         { status: 200 }
       );
     }
 
-    // Fetch all data in parallel
-    const [user, orders, notifications] = await Promise.all([
-      // Get user data
+    // Fetch user data (including preferences and embedded unread notifications count) and orders count
+    const [userData, orders] = await Promise.all([
       client.fetch(
         `*[_type == "user" && clerkUserId == $userId][0]{
           _id,
           email,
           role,
-          walletBalance
+          walletBalance,
+          preferences,
+          "unreadCount": count(notifications[read == false])
         }`,
         { userId }
       ),
-      // Get orders count
-      client.fetch(`count(*[_type == "order" && userId == $userId])`, {
-        userId,
-      }),
-      // Get unread notifications count
       client.fetch(
-        `*[_type == "notification" && userId == $userId && !read] | order(_createdAt desc)[0...20]{
-          _id,
-          read
-        }`,
+        `count(*[_type == "order" && (clerkUserId == $userId || userId == $userId)])`,
         { userId }
       ),
     ]);
 
     return NextResponse.json(
       {
-        user: user || null,
+        user: userData
+          ? {
+              _id: userData._id,
+              email: userData.email,
+              role: userData.role,
+              walletBalance: userData.walletBalance,
+            }
+          : null,
         ordersCount: orders || 0,
-        unreadNotifications: notifications?.length || 0,
-        walletBalance: user?.walletBalance || 0,
+        unreadNotifications: userData?.unreadCount || 0,
+        walletBalance: userData?.walletBalance || 0,
+        preferences: userData?.preferences || {},
+        authenticated: true,
       },
       {
         status: 200,
@@ -76,6 +79,8 @@ export async function GET() {
         ordersCount: 0,
         unreadNotifications: 0,
         walletBalance: 0,
+        preferences: {},
+        authenticated: false,
       },
       { status: 200 }
     );
