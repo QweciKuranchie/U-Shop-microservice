@@ -38,6 +38,12 @@ export const userType = defineType({
       type: "string",
     }),
     defineField({
+      name: "fcmToken",
+      title: "FCM Token",
+      type: "string",
+      description: "Firebase Cloud Messaging device token for push notifications",
+    }),
+    defineField({
       name: "dateOfBirth",
       title: "Date of Birth",
       type: "date",
@@ -78,6 +84,12 @@ export const userType = defineType({
           title: "Email Notifications",
           type: "boolean",
           initialValue: true,
+        }),
+        defineField({
+          name: "pushNotifications",
+          title: "Push Notifications",
+          type: "boolean",
+          initialValue: false,
         }),
         defineField({
           name: "smsNotifications",

@@ -45,11 +45,35 @@ interface Address {
   createdAt: string;
 }
 
+interface UserLike {
+  id?: string;
+  fullName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  emailAddresses?: Array<{ emailAddress: string }>;
+}
+
+export function resolveCustomerName(user: UserLike | null | undefined): string {
+  if (!user) return "Customer";
+  if (user.fullName && user.fullName.trim() !== "") {
+    return user.fullName.trim();
+  }
+  const nameParts = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
+  if (nameParts !== "") {
+    return nameParts;
+  }
+  const email = user.emailAddresses?.[0]?.emailAddress;
+  if (email && email.includes("@")) {
+    const localPart = email.split("@")[0];
+    if (localPart && localPart.trim() !== "") {
+      return localPart.trim();
+    }
+  }
+  return "Customer";
+}
+
 interface UseOrderPlacementProps {
-  user: {
-    id?: string;
-    emailAddresses: Array<{ emailAddress: string }>;
-  } | null;
+  user: UserLike | null;
 }
 
 export function useOrderPlacement({ user }: UseOrderPlacementProps) {
@@ -153,8 +177,8 @@ export function useOrderPlacement({ user }: UseOrderPlacementProps) {
         setOrderPlacementState(true, "emailing");
 
         const emailData: EmailOrderData = {
-          customerName: "Customer",
-          customerEmail: user?.emailAddresses[0]?.emailAddress || "",
+          customerName: resolveCustomerName(user),
+          customerEmail: user?.emailAddresses?.[0]?.emailAddress || "",
           orderId: orderNumber,
           orderDate: new Date().toLocaleDateString("en-US", {
             year: "numeric",

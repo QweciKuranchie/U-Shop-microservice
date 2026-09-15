@@ -14,8 +14,17 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const user = await getUserByClerkId(userId);
 
-    if (user?._id) {
-      await writeClient.patch(user._id).set({ preferences: body }).commit();
+    const preferencesObj = (body && typeof body === "object" && "preferences" in body ? body.preferences : body) || {};
+    const dotNotationPatch: Record<string, unknown> = {};
+
+    if (preferencesObj && typeof preferencesObj === "object") {
+      for (const [key, value] of Object.entries(preferencesObj)) {
+        dotNotationPatch[`preferences.${key}`] = value;
+      }
+    }
+
+    if (user?._id && Object.keys(dotNotationPatch).length > 0) {
+      await writeClient.patch(user._id).set(dotNotationPatch).commit();
     }
 
     return NextResponse.json({
