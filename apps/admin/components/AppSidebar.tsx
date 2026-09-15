@@ -22,6 +22,7 @@ import {
   SidebarSeparator,
  } from "@repo/ui";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { 
   DropdownMenu,
@@ -71,13 +72,17 @@ const AppSidebar = () => {
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg">
               <Link href="/admin" className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
-                  U
-                </div>
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold text-base">UShop</span>
-                  <span className="text-xs text-muted-foreground">Admin Portal</span>
-                </div>
+                <Image
+                  src="/assets/logos/web/logo-300w.png"
+                  alt="UShop Admin"
+                  width={120}
+                  height={32}
+                  className="h-8 w-auto object-contain"
+                  priority
+                />
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                  Admin
+                </span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

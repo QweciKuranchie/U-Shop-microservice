@@ -17,7 +17,10 @@ export const metadata: Metadata = {
   description: "U-Shop, Ghana's trusted tech e-commerce platform for buyers and sellers",
   icons: {
     icon: [
-      { url: "/assets/logos/favicon/android-chrome-192x192.png", sizes: "192x192", type: "image/png" }
+      { url: "/assets/logos/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/assets/logos/favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/assets/logos/favicon/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/assets/logos/favicon/android-chrome-512x512.png", sizes: "512x512", type: "image/png" },
     ],
     shortcut: "/assets/logos/favicon/favicon.ico",
     apple: [
@@ -32,7 +35,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-        <ClerkProvider appearance={{ theme: shadcn }}>
+        <ClerkProvider
+          appearance={{ theme: shadcn }}
+          signInUrl="/sign-in"
+          signUpUrl="/sign-up"
+        >
           <UserDataProvider>
             <div className="min-h-screen flex flex-col">
               <Header />

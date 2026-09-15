@@ -89,11 +89,21 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    if (isLoaded && user) {
-      const timer = setTimeout(() => {
-        fetchUserData();
-      }, 0);
-      return () => clearTimeout(timer);
+    if (isLoaded) {
+      if (user) {
+        const timer = setTimeout(() => {
+          fetchUserData();
+        }, 0);
+        return () => clearTimeout(timer);
+      } else {
+        cachedData = null;
+        setUserData({
+          ordersCount: 0,
+          unreadNotifications: 0,
+          walletBalance: 0,
+          isLoading: false,
+        });
+      }
     }
   }, [user, isLoaded, fetchUserData]);
 
