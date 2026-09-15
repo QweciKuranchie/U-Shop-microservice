@@ -1,5 +1,5 @@
 import React from "react";
-import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "../ui/tooltip";
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@repo/ui";
 import { cn } from "@repo/utils";
 import Link from "next/link";
 import { contactConfig } from "@/config/contact";

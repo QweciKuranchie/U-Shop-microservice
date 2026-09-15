@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Badge } from "./ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, Badge } from "@repo/ui";
 import {
   CheckCircle,
   Clock,

@@ -1,12 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { TableBody, TableCell, TableRow } from "./ui/table";
-import PriceFormatter from "./PriceFormatter";
-import { MY_ORDERS_QUERYResult } from "@repo/sanity";
-import { format } from "date-fns";
-import { CreditCard, Eye, Download } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "./ui/button";
+import { TableBody, TableCell, TableRow, Button } from "@repo/ui";
 import { ORDER_STATUSES, PAYMENT_STATUSES } from "@/lib/orderStatus";
 import Link from "next/link";
 

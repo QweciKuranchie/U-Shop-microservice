@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Product } from "@repo/sanity";
 import ProductCard from "./ProductCard";
-import { Button } from "./ui/button";
+import { Button } from "@repo/ui";
 import { Loader2 } from "lucide-react";
 
 interface PaginatedProductGridProps {

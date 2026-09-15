@@ -1,5 +1,4 @@
-import { Card, CardContent, CardHeader } from "./ui/card";
-import {  Skeleton  } from "@repo/ui";
+import { Card, CardContent, CardHeader, Skeleton } from "@repo/ui";
 
 export const OrdersPageSkeleton = () => {
   return (

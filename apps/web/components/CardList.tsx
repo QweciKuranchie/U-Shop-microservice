@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Image from "next/image";
-import { Card, CardContent, CardFooter, CardTitle } from "./ui/card";
-import { Badge } from "./ui/badge";
+import { Card, CardContent, CardFooter, CardTitle, Badge } from "@repo/ui";
 import { client } from "@repo/sanity";
 import { OrderType, ProductsType } from "@/types/admin";
 

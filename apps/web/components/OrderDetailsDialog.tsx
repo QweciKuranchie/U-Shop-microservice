@@ -1,18 +1,20 @@
 import { FC } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table";
+  Button,
+} from "@repo/ui";
 import PriceFormatter from "./PriceFormatter";
-import { MY_ORDERS_QUERYResult } from "@repo/sanity";
+import { MY_ORDERS_QUERYResult, urlFor } from "@repo/sanity";
 import Image from "next/image";
-import { urlFor } from "@repo/sanity";
-import { Button } from "./ui/button";
 
 interface OrderDetailsDialogProps {
   order: MY_ORDERS_QUERYResult[number] | null;
