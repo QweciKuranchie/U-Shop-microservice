@@ -1,11 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Badge } from "./ui/badge";
-import { Button, buttonVariants } from "./ui/button";
-import { Product } from "../sanity.types";
-import { Separator } from "./ui/separator";
+import { Card, CardContent, CardHeader, CardTitle, Badge, Button, buttonVariants, Separator } from "@repo/ui";
+import { Product } from "@repo/sanity";
 import {
   CalendarDays,
   MapPin,
