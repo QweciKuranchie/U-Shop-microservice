@@ -3,6 +3,11 @@ import React, { useState } from "react";
 import { TableBody, TableCell, TableRow, Button } from "@repo/ui";
 import { ORDER_STATUSES, PAYMENT_STATUSES } from "@/lib/orderStatus";
 import Link from "next/link";
+import PriceFormatter from "./PriceFormatter";
+import { MY_ORDERS_QUERYResult } from "@repo/sanity";
+import { format } from "date-fns";
+import { CreditCard, Eye, Download } from "lucide-react";
+import { toast } from "sonner";
 
 const OrdersComponent = ({ orders }: { orders: MY_ORDERS_QUERYResult }) => {
   const [payingOrderId] = useState<string | null>(null);
@@ -80,7 +85,7 @@ const OrdersComponent = ({ orders }: { orders: MY_ORDERS_QUERYResult }) => {
   return (
     <>
       <TableBody>
-        {orders.map((order) => (
+        {orders.map((order: any) => (
           <TableRow key={order?.orderNumber} className="hover:bg-gray-50 h-16">
             <TableCell className="font-medium text-sm">
               <div className="flex flex-col">

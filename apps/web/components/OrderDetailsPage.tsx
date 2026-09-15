@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, Badge, Button, buttonVariants, Separator } from "@repo/ui";
 import { Product } from "@repo/sanity";
 import {
@@ -213,7 +214,7 @@ const OrderDetailsPage: React.FC<OrderDetailsPageProps> = ({ order }) => {
       if (response.ok && data.success) {
         toast.success(data.message || "Invoice generated successfully!");
         // Update the current order with the new invoice data
-        setCurrentOrder((prev) => ({
+        setCurrentOrder((prev: any) => ({
           ...prev,
           invoice: data.invoice,
         }));
@@ -245,7 +246,7 @@ const OrderDetailsPage: React.FC<OrderDetailsPageProps> = ({ order }) => {
         toast.success(result.message);
         // Update the current order to show cancellation request pending
         setCurrentOrder(
-          (prev) =>
+          (prev: any) =>
             ({
               ...prev,
               cancellationRequested: true,
