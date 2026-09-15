@@ -1,4 +1,4 @@
-import { Product } from "./sanity.types";
+import { Product } from "@repo/sanity";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 

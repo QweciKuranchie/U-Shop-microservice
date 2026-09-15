@@ -1,8 +1,7 @@
 import { Dispatch, SetStateAction, useMemo } from "react";
 import Title from "../Title";
 import { Brand, Category } from "@repo/sanity";
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { Label } from "../ui/label";
+import { RadioGroup, RadioGroupItem, Label } from "@repo/ui";
 import { ExtendedCategory } from "./CategoryList";
 
 interface Props {

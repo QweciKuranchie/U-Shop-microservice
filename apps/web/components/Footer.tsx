@@ -5,7 +5,7 @@ import Container from "./Container";
 import FooterTop from "./FooterTop";
 import Logo from "./common/Logo";
 import SocialMediaIcons from "./common/SocialMediaIcons";
-import { SubTitle, SubText } from "./ui/text";
+import { SubTitle, SubText } from "@repo/ui";
 import Link from "next/link";
 import Image from "next/image";
 import {

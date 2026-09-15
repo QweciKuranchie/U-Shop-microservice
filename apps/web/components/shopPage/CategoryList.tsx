@@ -2,8 +2,7 @@
 
 import { Dispatch, SetStateAction, useState, useMemo } from "react";
 import Title from "../Title";
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { Label } from "../ui/label";
+import { RadioGroup, RadioGroupItem, Label } from "@repo/ui";
 import { Category } from "@repo/sanity";
 import { ChevronDown, ChevronRight, Layers } from "lucide-react";
 

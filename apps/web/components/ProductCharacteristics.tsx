@@ -4,7 +4,7 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "./ui/accordion";
+} from "@repo/ui";
 
 interface ProductCharacteristicsProps {
   product: Product;

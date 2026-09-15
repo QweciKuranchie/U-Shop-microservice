@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "./ui/button";
 import {
+  Button,
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "./ui/card";
+} from "@repo/ui";
 import Logo from "./common/Logo";
 
 const NoAccessToCart = ({ details }: { details?: string }) => {

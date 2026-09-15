@@ -3,23 +3,22 @@
 import useCartStore from "@/store";
 import { useState } from "react";
 import PriceFormatter from "./PriceFormatter";
-import { Button } from "./ui/button";
 import AddToCartBtn from "./AddToCartBtn";
 import Image from "next/image";
 import Link from "next/link";
-import { Product } from "@repo/sanity";
-import { urlFor } from "@repo/sanity";
+import { Product, urlFor } from "@repo/sanity";
 import Container from "./Container";
 import { Heart, X, Trash2, AlertTriangle, ShoppingBag, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import {
+  Button,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
   DialogHeader,
   DialogFooter,
-} from "./ui/dialog";
+} from "@repo/ui";
 import { useUser } from "@clerk/nextjs";
 import NoAccessToCart from "./NoAccessToCart";
 

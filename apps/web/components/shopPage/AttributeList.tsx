@@ -2,7 +2,7 @@
 
 import React, { Dispatch, SetStateAction } from "react";
 import Title from "../Title";
-import { Badge } from "../ui/badge";
+import { Badge } from "@repo/ui";
 import { Award, ShieldCheck } from "lucide-react";
 
 export interface SanityAttributeRef {

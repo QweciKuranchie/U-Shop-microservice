@@ -1,7 +1,6 @@
 import { Dispatch, SetStateAction } from "react";
 import Title from "../Title";
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { Label } from "../ui/label";
+import { RadioGroup, RadioGroupItem, Label } from "@repo/ui";
 
 const priceArray = [
   { title: "Under GH₵100", value: "0-100" },

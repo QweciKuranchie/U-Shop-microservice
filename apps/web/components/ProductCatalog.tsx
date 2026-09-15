@@ -14,24 +14,22 @@ import {
   ChevronDown,
 } from "lucide-react";
 import NoProductsAvailable from "./product/NoProductsAvailable";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
 import {
+  Input,
+  Button,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
-import { Badge } from "./ui/badge";
-import { Separator } from "./ui/separator";
-import {
+  Badge,
+  Separator,
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "./ui/collapsible";
-import { Checkbox } from "./ui/checkbox";
-import { Slider } from "./ui/slider";
+  Checkbox,
+  Slider,
+} from "@repo/ui";
 
 interface Props {
   initialProducts: Product[];

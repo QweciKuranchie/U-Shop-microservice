@@ -1,4 +1,4 @@
-import { Button } from "./ui/button";
+import { Button } from "@repo/ui";
 import { HiMinus, HiPlus } from "react-icons/hi2";
 import { toast } from "sonner";
 import useCartStore from "@/store";
