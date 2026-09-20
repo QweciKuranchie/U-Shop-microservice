@@ -1,10 +1,10 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { backendClient } from "@repo/sanity";
+import { getAuthUser } from "@/lib/getAuthUser";
 
 export async function PUT(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await getAuthUser(request);
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

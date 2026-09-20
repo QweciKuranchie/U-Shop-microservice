@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
 import { client } from "@repo/sanity";
+import { getAuthUser } from "@/lib/getAuthUser";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -9,9 +9,9 @@ export const revalidate = 0;
  * Combined API endpoint to fetch all user data in a single request
  * Optimized for Next.js 16 and React 19
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await getAuthUser(request);
 
     if (!userId) {
       return NextResponse.json(

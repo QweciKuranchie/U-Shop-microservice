@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { writeClient } from "@repo/sanity";
+import { getAuthUser } from "@/lib/getAuthUser";
 
 // GET - Get reviews for a specific product
 export async function GET(request: NextRequest) {
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
 // POST - Submit a new review
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await getAuthUser(request);
 
     if (!userId) {
       return NextResponse.json(
@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
 // PATCH - Mark review as helpful
 export async function PATCH(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await getAuthUser(request);
 
     if (!userId) {
       return NextResponse.json(

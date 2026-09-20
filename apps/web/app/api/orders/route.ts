@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
 import { getMyOrders } from "@repo/sanity";
 import { writeClient } from "@repo/sanity";
+import { getAuthUser } from "@/lib/getAuthUser";
 import {
   ORDER_STATUSES,
   PAYMENT_STATUSES,
@@ -98,9 +98,9 @@ export function buildOrderData(input: BuildOrderDataInput) {
   };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await getAuthUser(request);
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -121,8 +121,7 @@ export async function GET() {
 export const POST = async (request: NextRequest) => {
   try {
     // Check authentication
-    const { userId } = await auth();
-    const user = await currentUser();
+    const { userId, user } = await getAuthUser(request);
 
     if (!userId || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

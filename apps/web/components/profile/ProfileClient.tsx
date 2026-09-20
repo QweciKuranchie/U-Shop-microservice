@@ -23,6 +23,7 @@ import {
   Trash2,
 } from "lucide-react";
 import ProfileEditSidebar from "./ProfileEditSidebar";
+import { useAuth } from "@clerk/nextjs";
 import AddressEditSidebar from "./AddressEditSidebar";
 
 interface EmailAddress {
@@ -90,6 +91,7 @@ interface ProfileClientProps {
 export default function ProfileClient({ userData }: ProfileClientProps) {
   const { clerk, sanity } = userData;
   const router = useRouter();
+  const { getToken } = useAuth();
   const [profileSidebarOpen, setProfileSidebarOpen] = useState(false);
   const [addressSidebarOpen, setAddressSidebarOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
@@ -104,7 +106,11 @@ export default function ProfileClient({ userData }: ProfileClientProps) {
   const fetchAddresses = useCallback(async () => {
     try {
       setLoadingAddresses(true);
-      const res = await fetch("/api/user/addresses");
+      const token = await getToken().catch(() => null);
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch("/api/user/addresses", { headers });
       if (res.ok) {
         const data = await res.json();
         if (data.addresses) {
@@ -117,13 +123,17 @@ export default function ProfileClient({ userData }: ProfileClientProps) {
       setLoadingAddresses(false);
       router.refresh();
     }
-  }, [router]);
+  }, [router, getToken]);
 
   useEffect(() => {
     let ignore = false;
     async function loadAddresses() {
       try {
-        const res = await fetch("/api/user/addresses");
+        const token = await getToken().catch(() => null);
+        const headers: Record<string, string> = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const res = await fetch("/api/user/addresses", { headers });
         if (res.ok && !ignore) {
           const data = await res.json();
           if (data.addresses) {
@@ -138,14 +148,19 @@ export default function ProfileClient({ userData }: ProfileClientProps) {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [getToken]);
 
   const handleDeleteAddress = async (addressId: string) => {
     if (!confirm("Are you sure you want to delete this address?")) return;
     try {
       setDeletingAddressId(addressId);
+      const token = await getToken().catch(() => null);
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
       const res = await fetch(`/api/user/addresses?id=${addressId}`, {
         method: "DELETE",
+        headers,
       });
       if (res.ok) {
         showToast.success("Address Deleted", "The address has been removed.");

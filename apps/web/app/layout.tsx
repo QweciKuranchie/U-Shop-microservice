@@ -102,6 +102,7 @@ export const viewport: Viewport = {
 
 import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from "@clerk/themes";
+import { ClerkAuthFetchInterceptor } from "@/components/auth/ClerkAuthFetchInterceptor";
 
 const RootLayout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -110,6 +111,7 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => {
       signInUrl="/sign-in"
       signUpUrl="/sign-up"
     >
+      <ClerkAuthFetchInterceptor />
       <html lang="en" className={cn("font-sans", inter.variable)}>
         <head>
           <meta name="mobile-web-app-capable" content="yes" />

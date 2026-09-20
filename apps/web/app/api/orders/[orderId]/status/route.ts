@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { verifyIsAdmin } from "@repo/auth";
 import { writeClient } from "@repo/sanity";
 import { sendOrderStatusNotification } from "@/lib/notificationService";
+import { getAuthUser } from "@/lib/getAuthUser";
 
 const KEY_MILESTONE_STATUSES = new Set([
   "processing",
@@ -34,7 +34,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
 ) {
-  const { userId } = await auth();
+  const { userId } = await getAuthUser(request);
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
