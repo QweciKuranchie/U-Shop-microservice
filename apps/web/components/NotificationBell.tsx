@@ -1,15 +1,21 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { useUserData } from "@/contexts/UserDataContext";
 
 export default function NotificationBell() {
+  const [mounted, setMounted] = useState(false);
   const { isSignedIn } = useUser();
   const { unreadNotifications } = useUserData();
 
-  if (!isSignedIn) {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || !isSignedIn) {
     return null;
   }
 

@@ -2,12 +2,18 @@
 
 import useCartStore from "@/store";
 import Link from "next/link";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ShoppingCartIcon } from "lucide-react";
 
 const CartIcon = () => {
+  const [mounted, setMounted] = useState(false);
   const { items } = useCartStore();
-  const itemCount = items?.reduce((total, item) => total + item.quantity, 0) || 0;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const itemCount = mounted ? (items?.reduce((total, item) => total + item.quantity, 0) || 0) : 0;
   const displayCount = itemCount > 9 ? "9+" : itemCount;
   return (
     <Link href={"/cart"} title="Shopping Cart" aria-label="Shopping Cart" className="group relative p-1.5 flex items-center justify-center">

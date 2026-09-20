@@ -1,14 +1,20 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { HeartIcon } from "lucide-react";
 import Link from "next/link";
 import useCartStore from "@/store";
 import isArray from "js-isarray";
 
 export default function WishlistIcon() {
+  const [mounted, setMounted] = useState(false);
   const { favoriteProduct } = useCartStore();
-  const count = isArray(favoriteProduct) ? favoriteProduct.length : 0;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const count = (mounted && isArray(favoriteProduct)) ? favoriteProduct.length : 0;
   const displayCount = count > 9 ? "9+" : count;
 
   return (
