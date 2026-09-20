@@ -17,8 +17,9 @@ export async function GET() {
     // Check if user exists in Sanity
     const userEmail = user.emailAddresses[0]?.emailAddress;
     const sanityUser = await backendClient.fetch(
-      `*[_type == "userType" && email == $email][0]{
+      `*[_type == "user" && (clerkUserId == $clerkUserId || (defined(email) && email == $email))][0]{
         _id,
+        clerkUserId,
         email,
         firstName,
         lastName,
@@ -35,7 +36,7 @@ export async function GET() {
         businessApprovedAt,
         rejectionReason
       }`,
-      { email: userEmail }
+      { clerkUserId: user.id, email: userEmail || "" }
     );
 
     return NextResponse.json({
@@ -73,8 +74,8 @@ export async function POST() {
 
     // Check if user already exists in Sanity
     const existingSanityUser = await backendClient.fetch(
-      `*[_type == "userType" && email == $email][0]`,
-      { email: userEmail }
+      `*[_type == "user" && (clerkUserId == $clerkUserId || (defined(email) && email == $email))][0]`,
+      { clerkUserId: user.id, email: userEmail }
     );
 
     if (existingSanityUser) {
@@ -114,6 +115,7 @@ export async function POST() {
       const updatedUser = await writeClient
         .patch(existingSanityUser._id)
         .set({
+          clerkUserId: user.id,
           premiumStatus: "pending",
           premiumAppliedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -130,7 +132,8 @@ export async function POST() {
 
     // Create new user with pending premium status
     const newUser = await writeClient.create({
-      _type: "userType",
+      _type: "user",
+      clerkUserId: user.id,
       email: userEmail,
       firstName: user.firstName,
       lastName: user.lastName,

@@ -1,11 +1,17 @@
 import { auth } from "@clerk/nextjs/server";
 import { client } from "@repo/sanity";
+import { SELLER_STORE_QUERY, SELLER_ORDERS_QUERY } from "@repo/sanity/queries";
 import { NextResponse } from "next/server";
 
 export async function GET() {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const orders = await client.fetch(`*[_type == "order"] | order(_createdAt desc)[0...50]`);
+  const store = await client.fetch(SELLER_STORE_QUERY, { userId });
+  if (!store) {
+    return NextResponse.json({ error: "Store not found" }, { status: 404 });
+  }
+
+  const orders = await client.fetch(SELLER_ORDERS_QUERY, { storeId: store._id });
   return NextResponse.json({ orders });
 }

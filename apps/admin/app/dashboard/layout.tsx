@@ -5,7 +5,8 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SidebarProvider } from "@repo/ui";
 import { cookies } from "next/headers";
 import { ToastContainer } from "react-toastify";
-import { requireAdmin } from "@repo/auth";
+import { auth } from "@clerk/nextjs/server";
+import { verifyIsAdmin } from "@/lib/adminAuth";
 import { redirect } from "next/navigation";
 
 export default async function DashboardLayout({
@@ -13,10 +14,14 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  try {
-    await requireAdmin();
-  } catch {
+  const { userId } = await auth();
+  if (!userId) {
     redirect("/sign-in");
+  }
+
+  const isAdmin = await verifyIsAdmin(userId);
+  if (!isAdmin) {
+    redirect("/unauthorized");
   }
 
   const cookieStore = await cookies();

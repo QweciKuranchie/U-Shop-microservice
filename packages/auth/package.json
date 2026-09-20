@@ -14,10 +14,6 @@
       "import": "./src/server.ts",
       "types": "./src/server.ts"
     },
-    "./middleware": {
-      "import": "./src/middleware.ts",
-      "types": "./src/middleware.ts"
-    },
     "./constants": {
       "import": "./src/constants.ts",
       "types": "./src/constants.ts"

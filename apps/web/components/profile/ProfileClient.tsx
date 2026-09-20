@@ -36,8 +36,8 @@ interface ClerkUser {
   lastName: string | null;
   emailAddresses: EmailAddress[];
   imageUrl: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
 interface Address {

@@ -83,8 +83,8 @@ export default async function ProfilePage() {
           : null,
       })),
       imageUrl: clerkUser.imageUrl,
-      createdAt: new Date(clerkUser.createdAt),
-      updatedAt: new Date(clerkUser.updatedAt),
+      createdAt: new Date(clerkUser.createdAt).toISOString(),
+      updatedAt: new Date(clerkUser.updatedAt).toISOString(),
     },
     sanity: sanityUser,
   };
