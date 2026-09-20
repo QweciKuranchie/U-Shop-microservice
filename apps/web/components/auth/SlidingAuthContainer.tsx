@@ -155,17 +155,47 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
   const redirectUrl = searchParams.get("redirect_url") || searchParams.get("redirectUrl") || "/";
 
   React.useEffect(() => {
-    if (isAuthLoaded && isSignedIn && !isModal && redirectUrl !== "/") {
-      if (redirectUrl.startsWith("http://") || redirectUrl.startsWith("https://")) {
-        window.location.href = redirectUrl;
+    if (isAuthLoaded && isSignedIn) {
+      if (isModal) {
+        closeAuthModal();
       } else {
-        router.push(redirectUrl);
+        const dest =
+          redirectUrl &&
+          !redirectUrl.includes("sign-in") &&
+          !redirectUrl.includes("sign-up")
+            ? redirectUrl
+            : "/";
+        if (dest.startsWith("http://") || dest.startsWith("https://")) {
+          window.location.href = dest;
+        } else {
+          router.replace(dest);
+        }
       }
     }
-  }, [isAuthLoaded, isSignedIn, isModal, redirectUrl, router]);
+  }, [isAuthLoaded, isSignedIn, isModal, redirectUrl, router, closeAuthModal]);
 
   // Google OAuth Handler
   const handleGoogleAuth = async (mode: "sign-in" | "sign-up") => {
+    // If already signed in, immediately navigate away or close modal
+    if (isSignedIn) {
+      if (isModal) {
+        closeAuthModal();
+      } else {
+        const dest =
+          redirectUrl &&
+          !redirectUrl.includes("sign-in") &&
+          !redirectUrl.includes("sign-up")
+            ? redirectUrl
+            : "/";
+        if (dest.startsWith("http://") || dest.startsWith("https://")) {
+          window.location.href = dest;
+        } else {
+          router.replace(dest);
+        }
+      }
+      return;
+    }
+
     try {
       const origin = typeof window !== "undefined" ? window.location.origin : "";
       const ssoCallbackUrl = origin ? `${origin}/sso-callback` : "/sso-callback";
@@ -185,7 +215,36 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
       }
     } catch (err: unknown) {
       console.error("Clerk Google OAuth Error:", err);
-      const errorObj = err as { errors?: Array<{ message?: string; longMessage?: string; code?: string }> };
+      const errorObj = err as {
+        errors?: Array<{ message?: string; longMessage?: string; code?: string }>;
+        message?: string;
+      };
+      const rawMsg =
+        errorObj?.errors?.[0]?.longMessage ||
+        errorObj?.errors?.[0]?.message ||
+        errorObj?.message ||
+        "";
+
+      // If already signed in, don't show an error — immediately complete the redirect
+      if (rawMsg.toLowerCase().includes("already signed in") || isSignedIn) {
+        if (isModal) {
+          closeAuthModal();
+        } else {
+          const dest =
+            redirectUrl &&
+            !redirectUrl.includes("sign-in") &&
+            !redirectUrl.includes("sign-up")
+              ? redirectUrl
+              : "/";
+          if (dest.startsWith("http://") || dest.startsWith("https://")) {
+            window.location.href = dest;
+          } else {
+            router.replace(dest);
+          }
+        }
+        return;
+      }
+
       const msg =
         errorObj?.errors?.[0]?.longMessage ||
         errorObj?.errors?.[0]?.message ||
