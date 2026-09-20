@@ -167,7 +167,7 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
   // Google OAuth Handler
   const handleGoogleAuth = async (mode: "sign-in" | "sign-up") => {
     try {
-      if (mode === "sign-in" && isSignInLoaded && signIn) {
+      if (isSignInLoaded && signIn) {
         await signIn.authenticateWithRedirect({
           strategy: "oauth_google",
           redirectUrl: "/sso-callback",
@@ -181,8 +181,23 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
         });
       }
     } catch (err: unknown) {
-      const errorObj = err as { errors?: Array<{ message?: string }> };
-      const msg = errorObj?.errors?.[0]?.message || "Google authentication failed. Please try again.";
+      if (isSignInLoaded && signIn) {
+        try {
+          await signIn.authenticateWithRedirect({
+            strategy: "oauth_google",
+            redirectUrl: "/sso-callback",
+            redirectUrlComplete: redirectUrl,
+          });
+          return;
+        } catch {
+          // Fall through
+        }
+      }
+      const errorObj = err as { errors?: Array<{ message?: string; longMessage?: string }> };
+      const msg =
+        errorObj?.errors?.[0]?.longMessage ||
+        errorObj?.errors?.[0]?.message ||
+        "Google authentication failed. Please try again.";
       if (mode === "sign-in") setSignInError(msg);
       else setSignUpError(msg);
     }
