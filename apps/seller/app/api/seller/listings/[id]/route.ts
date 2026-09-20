@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { createServerClient } from "@repo/supabase/server";
 import { client, writeClient } from "@repo/sanity";
 import { SELLER_STORE_QUERY } from "@repo/sanity/queries";
 import { NextRequest, NextResponse } from "next/server";
@@ -7,10 +7,14 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const store = await client.fetch(SELLER_STORE_QUERY, { userId });
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const store = await client.fetch(SELLER_STORE_QUERY, { userId: user.id });
   if (!store) {
     return NextResponse.json({ error: "Store not found" }, { status: 404 });
   }
@@ -35,10 +39,14 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const store = await client.fetch(SELLER_STORE_QUERY, { userId });
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const store = await client.fetch(SELLER_STORE_QUERY, { userId: user.id });
   if (!store) {
     return NextResponse.json({ error: "Store not found" }, { status: 404 });
   }

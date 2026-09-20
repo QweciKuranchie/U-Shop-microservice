@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { createServerClient } from "@repo/supabase/server";
 import { client } from "@repo/sanity";
 import { SELLER_STORE_QUERY, SELLER_PRODUCTS_COUNT_QUERY, SELLER_ORDERS_COUNT_QUERY } from "@repo/sanity/queries";
 import { KpiCard } from "@/components/dashboard/KpiCard";
@@ -6,8 +6,12 @@ import { SalesChart } from "@/components/dashboard/SalesChart";
 import { ShoppingBag, ShoppingCart, DollarSign, Clock } from "lucide-react";
 
 export default async function DashboardPage() {
-  const { userId } = await auth();
-  const store = userId ? await client.fetch(SELLER_STORE_QUERY, { userId }) : null;
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const store = user ? await client.fetch(SELLER_STORE_QUERY, { userId: user.id }) : null;
 
   const [productsCount, ordersCount] = await Promise.all([
     store?._id

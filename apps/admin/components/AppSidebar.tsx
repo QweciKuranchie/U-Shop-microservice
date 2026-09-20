@@ -7,6 +7,7 @@ import {
   User,
   ShoppingBasket,
   LayoutDashboard,
+  Store,
 } from "lucide-react";
 import { 
   Sidebar,
@@ -58,6 +59,11 @@ const items = [
     title: "Orders",
     url: "/admin/orders",
     icon: ShoppingBasket,
+  },
+  {
+    title: "Sellers & KYC",
+    url: "/admin/sellers",
+    icon: Store,
   },
 ];
 

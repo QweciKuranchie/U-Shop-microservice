@@ -21,3 +21,32 @@ export function getImageKitAuthParams(): ImageKitAuthParams {
 
   return imagekit.helper.getAuthenticationParameters();
 }
+
+export async function uploadFileToImageKit(
+  fileBuffer: Buffer,
+  fileName: string,
+  folder: string
+): Promise<string | null> {
+  const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
+  if (!privateKey) {
+    return null;
+  }
+
+  try {
+    const imagekit = new ImageKit({
+      privateKey,
+    });
+
+    const response = await imagekit.files.upload({
+      file: fileBuffer.toString("base64"),
+      fileName,
+      folder,
+      useUniqueFileName: true,
+    });
+
+    return response.url ?? null;
+  } catch (error) {
+    console.error("Failed to upload to ImageKit:", error);
+    return null;
+  }
+}

@@ -14,9 +14,12 @@ import {
   Globe,
   Star
 } from "lucide-react";
-import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { createServerClient } from "@repo/supabase/server";
 
-export default function SellerLandingPage() {
+export default async function SellerLandingPage() {
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 selection:bg-purple-500 selection:text-white font-sans antialiased overflow-x-hidden">
       {/* ── TOP NAV BAR ────────────────────────────────────────────────── */}
@@ -46,7 +49,7 @@ export default function SellerLandingPage() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <SignedIn>
+            {user ? (
               <Link
                 href="/dashboard"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium text-sm shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 hover:scale-[1.02] transition-all"
@@ -54,23 +57,23 @@ export default function SellerLandingPage() {
                 <span>Dashboard</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
-            </SignedIn>
-
-            <SignedOut>
-              <Link
-                href="/sign-in"
-                className="text-sm font-medium px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-900 transition-all"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/create-store"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium text-sm shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 hover:scale-[1.02] transition-all"
-              >
-                <span>Start Selling</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </SignedOut>
+            ) : (
+              <>
+                <Link
+                  href="/sign-in"
+                  className="text-sm font-medium px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-900 transition-all"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/sign-up"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium text-sm shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 hover:scale-[1.02] transition-all"
+                >
+                  <span>Start Selling</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -303,7 +306,7 @@ export default function SellerLandingPage() {
             <div className="relative p-8 rounded-2xl bg-slate-950 border border-slate-800 text-center">
               <div className="w-10 h-10 rounded-full bg-purple-600 text-white font-bold text-base flex items-center justify-center mx-auto mb-6">1</div>
               <h3 className="text-xl font-bold text-white mb-2">Register Your Account</h3>
-              <p className="text-slate-400 text-sm">Sign in with Clerk Auth and complete your merchant store details in under 2 minutes.</p>
+              <p className="text-slate-400 text-sm">Create your seller account, submit your KYC verification documents, and launch your store.</p>
             </div>
 
             <div className="relative p-8 rounded-2xl bg-slate-950 border border-slate-800 text-center">
