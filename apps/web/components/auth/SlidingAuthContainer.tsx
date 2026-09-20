@@ -167,33 +167,25 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
   // Google OAuth Handler
   const handleGoogleAuth = async (mode: "sign-in" | "sign-up") => {
     try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const ssoCallbackUrl = origin ? `${origin}/sso-callback` : "/sso-callback";
+
       if (isSignInLoaded && signIn) {
         await signIn.authenticateWithRedirect({
           strategy: "oauth_google",
-          redirectUrl: "/sso-callback",
+          redirectUrl: ssoCallbackUrl,
           redirectUrlComplete: redirectUrl,
         });
       } else if (isSignUpLoaded && signUp) {
         await signUp.authenticateWithRedirect({
           strategy: "oauth_google",
-          redirectUrl: "/sso-callback",
+          redirectUrl: ssoCallbackUrl,
           redirectUrlComplete: redirectUrl,
         });
       }
     } catch (err: unknown) {
-      if (isSignInLoaded && signIn) {
-        try {
-          await signIn.authenticateWithRedirect({
-            strategy: "oauth_google",
-            redirectUrl: "/sso-callback",
-            redirectUrlComplete: redirectUrl,
-          });
-          return;
-        } catch {
-          // Fall through
-        }
-      }
-      const errorObj = err as { errors?: Array<{ message?: string; longMessage?: string }> };
+      console.error("Clerk Google OAuth Error:", err);
+      const errorObj = err as { errors?: Array<{ message?: string; longMessage?: string; code?: string }> };
       const msg =
         errorObj?.errors?.[0]?.longMessage ||
         errorObj?.errors?.[0]?.message ||
