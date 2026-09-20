@@ -133,8 +133,19 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => {
           return caches.match(request).then((cached) => {
-            // Serve cached version, or offline fallback page
-            return cached || caches.match('/offline');
+            if (cached) return cached;
+            return caches.match('/offline').then((offlineRes) => {
+              return (
+                offlineRes ||
+                new Response(
+                  '<!DOCTYPE html><html><head><title>Offline</title></head><body><h1>Offline</h1><p>Please check your internet connection.</p></body></html>',
+                  {
+                    status: 503,
+                    headers: { 'Content-Type': 'text/html' },
+                  }
+                )
+              );
+            });
           });
         })
     );
@@ -155,7 +166,13 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => cached);
+        .catch(() => {
+          if (cached) return cached;
+          return new Response(JSON.stringify({ error: 'Network error' }), {
+            status: 504,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        });
 
       return cached || fetchPromise;
     })

@@ -23,6 +23,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+const ICON_MAP: Record<string, LucideIcon> = {
+  zap: Zap,
+  "graduation-cap": GraduationCap,
+  tag: Tag,
+  "shopping-bag": ShoppingBag,
+  flame: Flame,
+};
+
 interface SingleDealClientProps {
   slug: string;
   dealInfo: {
@@ -31,7 +39,7 @@ interface SingleDealClientProps {
     badgeText: string;
     maxDiscount: string;
     bgGradient: string;
-    icon: LucideIcon;
+    iconName: string;
   };
   initialProducts: Product[];
 }
@@ -43,7 +51,7 @@ export default function SingleDealClient({
 }: SingleDealClientProps) {
   const isFlash = slug === "flash";
   const isSpecialOffers = slug === "special-offers";
-  const IconComp = dealInfo.icon;
+  const IconComp = ICON_MAP[dealInfo.iconName] || Zap;
 
   // Flash Sale sub-tabs: Today vs Tomorrow
   const [flashDayTab, setFlashDayTab] = useState<"today" | "tomorrow">("today");

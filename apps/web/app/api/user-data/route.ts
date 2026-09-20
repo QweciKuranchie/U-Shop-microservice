@@ -16,37 +16,41 @@ export async function GET(request: NextRequest) {
 
     // Get email from query parameters
     const { searchParams } = new URL(request.url);
-    const email = searchParams.get("email");
+    const paramEmail = searchParams.get("email");
 
-    if (!email) {
-      return NextResponse.json(
-        { error: "Email parameter is required" },
-        { status: 400 }
-      );
-    }
-
-    // Verify user owns this email or is an admin (prevents IDOR)
+    // Fetch user details from Clerk
     const client = await clerkClient();
     const clerkUser = await client.users.getUser(userId).catch(() => null);
-    const userEmails = clerkUser?.emailAddresses.map((e) => e.emailAddress.toLowerCase()) || [];
+
+    const userEmails =
+      clerkUser?.emailAddresses.map((e) => e.emailAddress.toLowerCase().trim()) || [];
+    const primaryEmail =
+      clerkUser?.emailAddresses[0]?.emailAddress || paramEmail || "";
+
     const isAdmin = await verifyIsAdmin(userId);
 
-    if (!isAdmin && !userEmails.includes(email.toLowerCase().trim())) {
-      return NextResponse.json(
-        { error: "Forbidden: You do not have permission to view this user's data" },
-        { status: 403 }
-      );
+    // If paramEmail is specified and valid/authorized, use it; otherwise fallback to primary email
+    let targetEmail = primaryEmail;
+    if (paramEmail) {
+      const normalizedParam = paramEmail.toLowerCase().trim();
+      if (isAdmin || userEmails.includes(normalizedParam)) {
+        targetEmail = paramEmail;
+      }
+    }
+
+    if (!targetEmail) {
+      return NextResponse.json({ addresses: [], orders: [] }, { status: 200 });
     }
 
     // Fetch user data from Sanity
     const [addresses, orders] = await Promise.all([
-      getUserAddressesByEmail(email),
-      getUserOrdersByEmail(email),
+      getUserAddressesByEmail(targetEmail),
+      getUserOrdersByEmail(targetEmail),
     ]);
 
     return NextResponse.json({
-      addresses,
-      orders,
+      addresses: addresses || [],
+      orders: orders || [],
     });
   } catch (error) {
     console.error("Error fetching user data:", error);

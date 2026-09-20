@@ -26,7 +26,7 @@ const DEAL_CATEGORIES: Record<
     badgeText: string;
     maxDiscount: string;
     bgGradient: string;
-    icon: LucideIcon;
+    iconName: string;
   }
 > = {
   flash: {
@@ -35,7 +35,7 @@ const DEAL_CATEGORIES: Record<
     badgeText: "FLASH SALE — UP TO 90% OFF",
     maxDiscount: "Up to 90% OFF",
     bgGradient: "from-ushop-red via-red-600 to-amber-600",
-    icon: Zap,
+    iconName: "zap",
   },
   students: {
     title: "Student Deals",
@@ -43,7 +43,7 @@ const DEAL_CATEGORIES: Record<
     badgeText: "STUDENT SPECIALS — UP TO 90% OFF",
     maxDiscount: "Up to 90% OFF",
     bgGradient: "from-emerald-700 via-teal-600 to-ushop-pink",
-    icon: GraduationCap,
+    iconName: "graduation-cap",
   },
   clearance: {
     title: "Clearance Sale",
@@ -51,7 +51,7 @@ const DEAL_CATEGORIES: Record<
     badgeText: "CLEARANCE — UP TO 50% OFF",
     maxDiscount: "Up to 50% OFF",
     bgGradient: "from-amber-600 via-orange-600 to-red-600",
-    icon: Tag,
+    iconName: "tag",
   },
   "black-friday": {
     title: "Black Friday Mega Deals",
@@ -59,7 +59,7 @@ const DEAL_CATEGORIES: Record<
     badgeText: "BLACK FRIDAY MEGA DEALS",
     maxDiscount: "Up to 90% OFF",
     bgGradient: "from-gray-950 via-gray-900 to-ushop-red",
-    icon: ShoppingBag,
+    iconName: "shopping-bag",
   },
   "special-offers": {
     title: "Special Offers",
@@ -67,7 +67,7 @@ const DEAL_CATEGORIES: Record<
     badgeText: "SPECIAL PROMOTIONAL OFFERS",
     maxDiscount: "Exclusive Deals",
     bgGradient: "from-purple-800 via-pink-700 to-amber-600",
-    icon: Flame,
+    iconName: "flame",
   },
 };
 
