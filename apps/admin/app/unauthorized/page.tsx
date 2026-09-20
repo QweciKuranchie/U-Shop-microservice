@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { ShieldAlert, ArrowLeft, LogIn } from "lucide-react";
 import { Button } from "@repo/ui";
