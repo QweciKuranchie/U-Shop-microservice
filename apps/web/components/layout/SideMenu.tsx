@@ -17,7 +17,7 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import { useOutsideClick } from "@/hooks";
 import { headerData, categoriesData } from "@/Constants/data";
-import { ClerkLoaded, SignedIn, SignedOut, SignOutButton, useAuth } from "@clerk/nextjs";
+import { ClerkLoaded, SignedIn, SignedOut, SignOutButton, useAuth, useUser, UserButton } from "@clerk/nextjs";
 import useStore from "@/store";
 import Logo from "../common/Logo";
 import SocialMediaIcons from "../common/SocialMediaIcons";
@@ -47,6 +47,7 @@ const DEFAULT_SIDEBAR_UNIVERSITIES: University[] = [
 const Sidebar: FC<SidebarProps> = ({ isOpen, onClose }) => {
   const pathname = usePathname();
   const { isSignedIn } = useAuth();
+  const { user } = useUser();
   const sidebarRef = useOutsideClick<HTMLDivElement>(onClose);
   const { items, favoriteProduct } = useStore();
   const [universities, setUniversities] = useState<University[]>(DEFAULT_SIDEBAR_UNIVERSITIES);
@@ -171,6 +172,26 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
             </SignedOut>
+            <SignedIn>
+              <div className="bg-ushop-purple/5 p-4 rounded-2xl border border-ushop-purple/10 mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <UserButton afterSignOutUrl="/" />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-ushop-purple">Welcome back!</span>
+                    <span className="text-xs text-zinc-600 font-medium truncate max-w-[140px]">
+                      {user?.fullName || user?.firstName || "My Account"}
+                    </span>
+                  </div>
+                </div>
+                <Link
+                  href="/user/profile"
+                  onClick={onClose}
+                  className="text-xs font-semibold text-ushop-pink hover:underline"
+                >
+                  Profile &rarr;
+                </Link>
+              </div>
+            </SignedIn>
           </ClerkLoaded>
 
           <div className={`grid gap-3 ${isSignedIn ? "grid-cols-3" : "grid-cols-2"}`}>

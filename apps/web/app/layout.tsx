@@ -100,19 +100,28 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+import { ClerkProvider } from "@clerk/nextjs";
+import { shadcn } from "@clerk/themes";
+
 const RootLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <html lang="en" className={cn("font-sans", inter.variable)}>
-      <head>
-        <meta name="mobile-web-app-capable" content="yes" />
-        <link rel="mask-icon" href="/assets/logos/favicon/favicon-32x32.png" color="#6B1FA8" />
-      </head>
-      <body className="font-sans antialiased">
-        {children}
-        <ServiceWorkerRegister />
-        <Analytics />
-      </body>
-    </html>
+    <ClerkProvider
+      appearance={{ theme: shadcn }}
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+    >
+      <html lang="en" className={cn("font-sans", inter.variable)}>
+        <head>
+          <meta name="mobile-web-app-capable" content="yes" />
+          <link rel="mask-icon" href="/assets/logos/favicon/favicon-32x32.png" color="#6B1FA8" />
+        </head>
+        <body className="font-sans antialiased">
+          {children}
+          <ServiceWorkerRegister />
+          <Analytics />
+        </body>
+      </html>
+    </ClerkProvider>
   );
 };
 export default RootLayout;

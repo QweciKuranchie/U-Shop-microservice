@@ -4,8 +4,6 @@ import { Analytics } from "@vercel/analytics/next";
 import "../globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { ClerkProvider } from "@clerk/nextjs";
-import { shadcn } from "@clerk/themes";
 import { UserDataProvider } from "@/contexts/UserDataContext";
 import { SanityLive } from "@repo/sanity/live";
 import { Toaster } from "sonner";
@@ -35,39 +33,33 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-        <ClerkProvider
-          appearance={{ theme: shadcn }}
-          signInUrl="/sign-in"
-          signUpUrl="/sign-up"
-        >
-          <UserDataProvider>
-            <div className="min-h-screen flex flex-col">
-              <Header />
-              <main className="flex-1">
-                {children}
-              </main>
-              <Footer />
-            </div>
-            <SpeedInsights />
-            <Analytics /> 
-            <SanityLive />
-            <Toaster
-              position="bottom-right"
-              toastOptions={{
-                style: {
-                  background: "#ffffff",
-                  color: "#520f85",
-                  border: "1px solid rgba(212, 0, 155, 0.25)",
-                  boxShadow: "0 10px 25px -5px rgba(107, 31, 168, 0.15)",
-                  borderRadius: "0.85rem",
-                  fontFamily: "var(--font-sans), sans-serif",
-                  fontWeight: 500,
-                },
-              }}
-            />
-            <ScrollToTop />
-            <AuthModal />
-          </UserDataProvider>
-        </ClerkProvider>
+    <UserDataProvider>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1">
+          {children}
+        </main>
+        <Footer />
+      </div>
+      <SpeedInsights />
+      <Analytics /> 
+      <SanityLive />
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            background: "#ffffff",
+            color: "#520f85",
+            border: "1px solid rgba(212, 0, 155, 0.25)",
+            boxShadow: "0 10px 25px -5px rgba(107, 31, 168, 0.15)",
+            borderRadius: "0.85rem",
+            fontFamily: "var(--font-sans), sans-serif",
+            fontWeight: 500,
+          },
+        }}
+      />
+      <ScrollToTop />
+      <AuthModal />
+    </UserDataProvider>
   );
 }
