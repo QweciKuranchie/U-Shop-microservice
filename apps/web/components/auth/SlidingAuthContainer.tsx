@@ -5,7 +5,7 @@ import { useSignIn, useSignUp, useAuth } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Mail, Lock, User, Eye, EyeOff, ShieldCheck, Check, Truck, Tag } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, ShieldCheck, Check, Truck, Tag, Loader2 } from "lucide-react";
 import { useAuthModal } from "@/hooks/useAuthModal";
 import Logo from "@/components/common/Logo";
 import "./SlidingAuthContainer.css";
@@ -224,9 +224,14 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
         errorObj?.errors?.[0]?.message ||
         errorObj?.message ||
         "";
+      const errCode = errorObj?.errors?.[0]?.code || "";
 
       // If already signed in, don't show an error — immediately complete the redirect
-      if (rawMsg.toLowerCase().includes("already signed in") || isSignedIn) {
+      if (
+        rawMsg.toLowerCase().includes("already signed in") ||
+        errCode === "session_exists" ||
+        isSignedIn
+      ) {
         if (isModal) {
           closeAuthModal();
         } else {
@@ -253,6 +258,19 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
       else setSignUpError(msg);
     }
   };
+
+  // If already signed in, show a clean redirection spinner instead of the login form
+  if (isAuthLoaded && isSignedIn) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 min-h-[350px] bg-white rounded-2xl shadow-sm text-center">
+        <Loader2 className="w-10 h-10 animate-spin text-purple-600 mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">Signed In</h3>
+        <p className="text-sm text-gray-500 max-w-xs">
+          You are already signed in. Taking you to your destination...
+        </p>
+      </div>
+    );
+  }
 
   const handleSignInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

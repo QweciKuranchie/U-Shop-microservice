@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
 import { backendClient } from "@repo/sanity";
+import { getAuthUser } from "@/lib/getAuthUser";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    const user = await currentUser();
+    const { userId, user } = await getAuthUser(request);
 
     if (!userId || !user) {
       return NextResponse.json(
@@ -56,8 +55,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    const user = await currentUser();
+    const { userId, user } = await getAuthUser(request);
 
     if (!userId || !user) {
       return NextResponse.json(
@@ -197,8 +195,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    const user = await currentUser();
+    const { userId, user } = await getAuthUser(request);
 
     if (!userId || !user) {
       return NextResponse.json(
@@ -306,7 +303,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await getAuthUser(request);
 
     if (!userId) {
       return NextResponse.json(

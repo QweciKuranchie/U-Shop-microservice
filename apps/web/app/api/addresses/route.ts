@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
 import { backendClient } from "@repo/sanity";
+import { getAuthUser } from "@/lib/getAuthUser";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    const user = await currentUser();
+    const { userId, user } = await getAuthUser(request);
 
     if (!userId || !user) {
       return NextResponse.json(

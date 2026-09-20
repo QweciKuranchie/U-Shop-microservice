@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { ServerCartContent } from "./ServerCartContent";
 import { CartSkeleton } from "./CartSkeleton";
 import { trackCartView } from "@/lib/analytics";
@@ -37,6 +37,7 @@ interface UserData {
 
 export function ClientCartContent() {
   const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,9 +55,16 @@ export function ClientCartContent() {
     try {
       setLoading(true);
 
+      const token = await getToken().catch(() => null);
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       // Fetch user data from API endpoint
       const response = await fetch(
-        `/api/user-data?email=${encodeURIComponent(userEmail)}`
+        `/api/user-data?email=${encodeURIComponent(userEmail)}`,
+        { headers }
       );
 
       if (!response.ok) {
@@ -70,7 +78,7 @@ export function ClientCartContent() {
     } finally {
       setLoading(false);
     }
-  }, [isLoaded, user]);
+  }, [isLoaded, user, getToken]);
 
   const refreshAddresses = async () => {
     if (!user) return;
@@ -79,9 +87,16 @@ export function ClientCartContent() {
     if (!userEmail) return;
 
     try {
+      const token = await getToken().catch(() => null);
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       // Only fetch addresses to refresh them
       const response = await fetch(
-        `/api/user-data?email=${encodeURIComponent(userEmail)}`
+        `/api/user-data?email=${encodeURIComponent(userEmail)}`,
+        { headers }
       );
 
       if (!response.ok) {

@@ -1,11 +1,11 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { writeClient } from "@repo/sanity";
 import { getUserByClerkId } from "@repo/sanity/queries";
+import { getAuthUser } from "@/lib/getAuthUser";
 
 export async function PATCH(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await getAuthUser(request);
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

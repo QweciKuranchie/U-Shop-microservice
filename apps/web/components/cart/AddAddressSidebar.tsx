@@ -16,6 +16,7 @@ import {
 import { LocationSelector } from "@repo/ui";
 import { MapPin, Loader2, Save, X } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@clerk/nextjs";
 
 interface LocationData {
   country: string;
@@ -42,6 +43,7 @@ export function AddAddressSidebar({
   onAddressAdded,
   isFirstAddress = false,
 }: AddAddressSidebarProps) {
+  const { getToken } = useAuth();
   const [isPending, startTransition] = useTransition();
   const [formData, setFormData] = useState({
     name: "",
@@ -88,11 +90,17 @@ export function AddAddressSidebar({
 
     startTransition(async () => {
       try {
+        const token = await getToken().catch(() => null);
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
         const response = await fetch("/api/user/addresses", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers,
           body: JSON.stringify({
             name: formData.name,
             address: formData.address,

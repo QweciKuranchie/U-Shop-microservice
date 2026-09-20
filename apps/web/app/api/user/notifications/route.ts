@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
 import { markNotificationAsRead, deleteUserNotification, type SanityNotificationItem, getUserNotifications } from "@repo/sanity/queries";
+import { getAuthUser } from "@/lib/getAuthUser";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const user = await currentUser();
+    const { userId, user } = await getAuthUser(request);
+    const targetUserId = user?.id || userId;
 
-    if (!user) {
+    if (!targetUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const notifications = await getUserNotifications(user.id);
+    const notifications = await getUserNotifications(targetUserId);
 
     // Sort notifications by date (newest first)
     const sortedNotifications = notifications.sort(
@@ -35,9 +36,10 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await currentUser();
+    const { userId, user } = await getAuthUser(request);
+    const targetUserId = user?.id || userId;
 
-    if (!user) {
+    if (!targetUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -50,7 +52,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const result = await markNotificationAsRead(user.id, notificationId);
+    const result = await markNotificationAsRead(targetUserId, notificationId);
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 500 });
@@ -68,9 +70,10 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await currentUser();
+    const { userId, user } = await getAuthUser(request);
+    const targetUserId = user?.id || userId;
 
-    if (!user) {
+    if (!targetUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -84,7 +87,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const result = await deleteUserNotification(user.id, notificationId);
+    const result = await deleteUserNotification(targetUserId, notificationId);
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 500 });

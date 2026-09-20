@@ -15,6 +15,7 @@ import {
 import { showToast } from "@/lib/toast";
 import { LocationSelector } from "@repo/ui";
 import { MapPin, Save, X, Trash2 } from "lucide-react";
+import { useAuth } from "@clerk/nextjs";
 
 interface Address {
   _id?: string;
@@ -47,6 +48,7 @@ export default function AddressEditSidebar({
   userId,
   onAddressChange,
 }: AddressEditSidebarProps) {
+  const { getToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [formData, setFormData] = useState<Address>({
@@ -109,11 +111,17 @@ export default function AddressEditSidebar({
     setLoading(true);
 
     try {
+      const token = await getToken().catch(() => null);
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await fetch("/api/user/addresses", {
         method: isEditing ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           ...formData,
           userId,
@@ -163,8 +171,15 @@ export default function AddressEditSidebar({
     setDeleteLoading(true);
 
     try {
+      const token = await getToken().catch(() => null);
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`/api/user/addresses?id=${address._id}`, {
         method: "DELETE",
+        headers,
       });
 
       if (response.ok) {

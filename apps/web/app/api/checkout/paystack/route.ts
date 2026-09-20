@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUser } from "@/lib/getAuthUser";
 import {
   ghsToPesewas,
   generatePaystackReference,
@@ -8,7 +8,7 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId } = await getAuthUser(request);
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

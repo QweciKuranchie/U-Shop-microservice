@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { writeClient } from "@repo/sanity";
 import { PAYMENT_STATUSES } from "@/lib/orderStatus";
+import { getAuthUser } from "@/lib/getAuthUser";
 
 export const POST = async (request: NextRequest) => {
   try {
-    const { userId } = await auth();
+    const { userId } = await getAuthUser(request);
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

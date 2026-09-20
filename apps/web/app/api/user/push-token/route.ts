@@ -1,9 +1,9 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { writeClient } from "@repo/sanity";
+import { getAuthUser } from "@/lib/getAuthUser";
 
 export async function POST(request: NextRequest) {
-  const { userId } = await auth();
+  const { userId } = await getAuthUser(request);
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ success: true });
 }
 
-export async function DELETE() {
-  const { userId } = await auth();
+export async function DELETE(request: NextRequest) {
+  const { userId } = await getAuthUser(request);
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

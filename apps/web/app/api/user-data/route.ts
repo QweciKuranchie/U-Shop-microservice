@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import {
   getUserAddressesByEmail,
   getUserOrdersByEmail,
 } from "@repo/sanity/queries";
 import { verifyIsAdmin } from "@repo/auth";
+import { getAuthUser } from "@/lib/getAuthUser";
 
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
-    const { userId } = await auth();
+    // Check authentication (cookies or Authorization Bearer header)
+    const { userId, user } = await getAuthUser(request);
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -18,9 +19,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const paramEmail = searchParams.get("email");
 
-    // Fetch user details from Clerk
-    const client = await clerkClient();
-    const clerkUser = await client.users.getUser(userId).catch(() => null);
+    // Fetch user details from Clerk if not already loaded
+    let clerkUser = user;
+    if (!clerkUser) {
+      const client = await clerkClient();
+      clerkUser = await client.users.getUser(userId).catch(() => null);
+    }
 
     const userEmails =
       clerkUser?.emailAddresses.map((e) => e.emailAddress.toLowerCase().trim()) || [];

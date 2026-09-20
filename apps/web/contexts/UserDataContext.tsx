@@ -7,7 +7,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 
 interface UserData {
   ordersCount: number;
@@ -31,6 +31,7 @@ const CACHE_DURATION = 30000; // 30 seconds
 
 export function UserDataProvider({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
   const [userData, setUserData] = useState<UserData>({
     ordersCount: 0,
     unreadNotifications: 0,
@@ -56,9 +57,13 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
       setUserData((prev) => ({ ...prev, isLoading: true }));
 
       try {
+        const token = await getToken().catch(() => null);
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
         // Fetch all user data in a single optimized API call
         const response = await fetch("/api/user/combined-data", {
-          headers: { "Content-Type": "application/json" },
+          headers,
           cache: "no-store",
         });
 
@@ -85,7 +90,7 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
         setUserData((prev) => ({ ...prev, isLoading: false }));
       }
     },
-    [user, isLoaded]
+    [user, isLoaded, getToken]
   );
 
   useEffect(() => {
