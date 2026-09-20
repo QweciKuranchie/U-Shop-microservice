@@ -24,6 +24,7 @@
     "@repo/auth": "workspace:*",
     "@repo/config": "workspace:*",
     "@repo/sanity": "workspace:*",
+    "@repo/supabase": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
     "@sanity/icons": "^3.5.2",

@@ -1,7 +1,7 @@
 import { defineQuery } from "next-sanity";
 
 export const SELLER_STORE_QUERY = defineQuery(
-  `*[_type == "store" && clerkUserId == $userId][0]{ _id, name }`
+  `*[_type == "store" && (supabaseUserId == $userId || clerkUserId == $userId)][0]{ _id, name, status, sellerType }`
 );
 
 export const SELLER_PRODUCTS_COUNT_QUERY = defineQuery(

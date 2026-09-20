@@ -145,7 +145,22 @@ export type Store = {
   slug?: Slug;
   ownerName?: string;
   clerkUserId?: string;
+  supabaseUserId?: string;
+  sellerType?: "personal" | "business" | "student";
+  phone?: string;
+  email?: string;
+  nationalIdNumber?: string;
+  businessName?: string;
+  businessRegistrationNumber?: string;
+  university?: string;
+  studentIdNumber?: string;
+  studentEmail?: string;
+  kycStatus?: "pending_review" | "approved" | "rejected" | "not_submitted";
+  kycRejectionReason?: string;
+  kycReviewedAt?: string;
+  kycReviewedBy?: string;
   location?: LocationReference;
+  locationText?: string;
   description?: string;
   logo?: {
     asset?: SanityImageAssetReference;
@@ -164,7 +179,7 @@ export type Store = {
   verifiedStudent?: boolean;
   verifiedSeller?: boolean;
   rating?: number;
-  status?: "active" | "suspended";
+  status?: "active" | "pending_review" | "suspended" | "rejected";
 };
 
 export type SanityImageCrop = {

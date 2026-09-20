@@ -1,18 +1,29 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { auth } from "@clerk/nextjs/server";
+import { createServerClient } from "@repo/supabase/server";
 import { client } from "@repo/sanity";
 import Link from "next/link";
 import { Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge } from "@repo/ui";
 import { Plus } from "lucide-react";
 
 export default async function ListingsPage() {
-  const { userId } = await auth();
-  const store = await client.fetch(`*[_type == "store" && clerkUserId == $userId][0]{ _id }`, { userId });
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const products = await client.fetch(
-    `*[_type == "product" && store._ref == $storeId] | order(_createdAt desc){ _id, name, price, discount, stock, condition }`,
-    { storeId: store?._id }
-  );
+  const store = user
+    ? await client.fetch(
+        `*[_type == "store" && (supabaseUserId == $userId || clerkUserId == $userId)][0]{ _id }`,
+        { userId: user.id }
+      )
+    : null;
+
+  const products = store?._id
+    ? await client.fetch(
+        `*[_type == "product" && store._ref == $storeId] | order(_createdAt desc){ _id, name, price, discount, stock, condition }`,
+        { storeId: store._id }
+      )
+    : [];
 
   return (
     <div className="space-y-6">

@@ -1,10 +1,19 @@
-import { auth } from "@clerk/nextjs/server";
+import { createServerClient } from "@repo/supabase/server";
 import { client } from "@repo/sanity";
 import { Card, CardContent, CardHeader, CardTitle, Input, Label, Textarea, Button } from "@repo/ui";
 
 export default async function StoreSettingsPage() {
-  const { userId } = await auth();
-  const store = await client.fetch(`*[_type == "store" && clerkUserId == $userId][0]`, { userId });
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const store = user
+    ? await client.fetch(
+        `*[_type == "store" && (supabaseUserId == $userId || clerkUserId == $userId)][0]`,
+        { userId: user.id }
+      )
+    : null;
 
   return (
     <div className="space-y-6 max-w-2xl">

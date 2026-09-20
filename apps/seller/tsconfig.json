@@ -5,14 +5,17 @@
       "@/*": [
         "./*"
       ],
-      "@repo/auth": [
-        "../../packages/auth/src/index.ts"
-      ],
       "@repo/media": [
         "../../packages/media/src/index.ts"
       ],
       "@repo/sanity": [
         "../../packages/sanity/src/index.ts"
+      ],
+      "@repo/supabase": [
+        "../../packages/supabase/src/index.ts"
+      ],
+      "@repo/supabase/*": [
+        "../../packages/supabase/src/*"
       ],
       "@repo/ui": [
         "../../packages/ui/src/index.ts"
