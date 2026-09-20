@@ -1,5 +1,6 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "nxCloudAccessToken": "REPLACE_WITH_NX_CLOUD_TOKEN",
   "defaultBase": "main",
   "namedInputs": {
     "default": [

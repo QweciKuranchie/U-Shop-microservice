@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { client } from "@repo/sanity";
+import { backendClient } from "@repo/sanity";
 import { SellerSidebar } from "@/components/layout/SellerSidebar";
 import { SellerHeader } from "@/components/layout/SellerHeader";
 import QueryProvider from "@/components/providers/QueryProvider";
@@ -18,7 +18,7 @@ export default async function DashboardLayout({
     redirect("/sign-in");
   }
 
-  const store = await client.fetch(SELLER_STORE_QUERY, { userId });
+  const store = await backendClient.fetch(SELLER_STORE_QUERY, { userId });
 
   if (!store) {
     redirect("/create-store");
