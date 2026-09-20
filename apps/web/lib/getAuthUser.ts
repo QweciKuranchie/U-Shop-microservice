@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { auth, currentUser, clerkClient, verifyToken } from "@clerk/nextjs/server";
-import type { User } from "@clerk/backend";
+
+export type ClerkUser = Awaited<ReturnType<typeof currentUser>>;
 
 /**
  * Robustly extracts the authenticated user from standard Clerk cookies,
@@ -10,14 +11,14 @@ import type { User } from "@clerk/backend";
  */
 export async function getAuthUser(request?: NextRequest | Request): Promise<{
   userId: string | null;
-  user: User | null;
+  user: ClerkUser;
 }> {
   try {
     // 1. Try standard Clerk cookies first
     const { userId: cookieUserId } = await auth();
     if (cookieUserId) {
       const user = await currentUser();
-      return { userId: cookieUserId, user: user as unknown as User };
+      return { userId: cookieUserId, user };
     }
 
     // 2. Fallback to Authorization Bearer header
@@ -29,10 +30,10 @@ export async function getAuthUser(request?: NextRequest | Request): Promise<{
         if (token && secretKey) {
           const verified = await verifyToken(token, { secretKey }).catch(() => null);
           if (verified?.sub) {
-            let user: User | null = null;
+            let user: ClerkUser = null;
             try {
               const client = await clerkClient();
-              user = (await client.users.getUser(verified.sub)) as unknown as User;
+              user = (await client.users.getUser(verified.sub)) as unknown as ClerkUser;
             } catch (userErr) {
               console.warn("getAuthUser: verified sub but failed to fetch user record", userErr);
             }
