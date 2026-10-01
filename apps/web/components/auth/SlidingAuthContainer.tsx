@@ -510,6 +510,8 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
 
   return (
     <div className="auth-sliding-wrapper">
+      {/* Clerk Bot Protection / Turnstile CAPTCHA container */}
+      <div id="clerk-captcha" />
       <div
         className={`auth-container ${isRightPanelActive ? "right-panel-active" : ""}`}
         id="container"
