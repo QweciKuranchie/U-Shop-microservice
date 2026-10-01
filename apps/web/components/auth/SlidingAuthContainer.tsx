@@ -293,26 +293,26 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
       });
 
       if (result.status === "complete") {
-        if (isModal) {
-          closeAuthModal();
-        }
         await setSignInActive({
           session: result.createdSessionId,
           redirectUrl,
         });
+        if (isModal) {
+          closeAuthModal();
+        }
       } else if (result.status === "needs_first_factor") {
         const passwordResult = await signIn.attemptFirstFactor({
           strategy: "password",
           password: signInPassword,
         });
         if (passwordResult.status === "complete") {
-          if (isModal) {
-            closeAuthModal();
-          }
           await setSignInActive({
             session: passwordResult.createdSessionId,
             redirectUrl,
           });
+          if (isModal) {
+            closeAuthModal();
+          }
         } else {
           setSignInError("Sign-in verification incomplete. Please try again.");
         }
@@ -385,13 +385,13 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
       const signUpAttempt = await signUp.create(signUpParams);
 
       if (signUpAttempt.status === "complete") {
-        if (isModal) {
-          closeAuthModal();
-        }
         await setSignUpActive({
           session: signUpAttempt.createdSessionId,
           redirectUrl,
         });
+        if (isModal) {
+          closeAuthModal();
+        }
         return;
       }
 
@@ -427,23 +427,23 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
       });
 
       if (completeSignUp.status === "complete") {
-        if (isModal) {
-          closeAuthModal();
-        }
         if (completeSignUp.createdSessionId) {
           await setSignUpActive({
             session: completeSignUp.createdSessionId,
             redirectUrl,
           });
         }
-      } else if (signUp.status === "complete" && signUp.createdSessionId) {
         if (isModal) {
           closeAuthModal();
         }
+      } else if (signUp.status === "complete" && signUp.createdSessionId) {
         await setSignUpActive({
           session: signUp.createdSessionId,
           redirectUrl,
         });
+        if (isModal) {
+          closeAuthModal();
+        }
       } else {
         setSignUpError(`Verification status: ${completeSignUp.status}. Please check the code.`);
       }
@@ -459,13 +459,13 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
         signUp?.status === "complete"
       ) {
         if (signUp?.createdSessionId) {
-          if (isModal) {
-            closeAuthModal();
-          }
           await setSignUpActive({
             session: signUp.createdSessionId,
             redirectUrl,
           });
+          if (isModal) {
+            closeAuthModal();
+          }
           return;
         }
       }
