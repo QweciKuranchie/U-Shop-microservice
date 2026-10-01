@@ -250,10 +250,16 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
         return;
       }
 
-      const msg =
+      let msg =
         errorObj?.errors?.[0]?.longMessage ||
         errorObj?.errors?.[0]?.message ||
         "Google authentication failed. Please try again.";
+
+      if (msg.includes("does not match one of the allowed values for parameter strategy")) {
+        msg =
+          "Google sign-in is not enabled in your Clerk Dashboard. Please enable Google under Social Connections in your Clerk Dashboard, or sign in with email & password.";
+      }
+
       if (mode === "sign-in") setSignInError(msg);
       else setSignUpError(msg);
     }
@@ -504,6 +510,8 @@ export default function SlidingAuthContainer({ initialMode = "sign-in", isModal 
 
   return (
     <div className="auth-sliding-wrapper">
+      {/* Clerk Bot Protection / Turnstile CAPTCHA container */}
+      <div id="clerk-captcha" />
       <div
         className={`auth-container ${isRightPanelActive ? "right-panel-active" : ""}`}
         id="container"
