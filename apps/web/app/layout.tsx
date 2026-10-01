@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+﻿import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { cn } from "@repo/utils";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
@@ -110,8 +110,8 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => {
       appearance={{ theme: shadcn }}
       signInUrl="/sign-in"
       signUpUrl="/sign-up"
-      afterSignInUrl="/"
-      afterSignUpUrl="/"
+      signInFallbackRedirectUrl="/"
+      signUpFallbackRedirectUrl="/"
     >
       <html lang="en" className={cn("font-sans", inter.variable)}>
         <head>
