@@ -31,6 +31,26 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    const rawStudioUrl =
+      process.env.NEXT_PUBLIC_SANITY_STUDIO_URL ||
+      process.env.SANITY_STUDIO_URL ||
+      "https://sanity.ushopgh.com";
+    const studioUrl = rawStudioUrl.replace(/\/+$/, "");
+
+    return [
+      {
+        source: "/studio",
+        destination: studioUrl,
+        permanent: false,
+      },
+      {
+        source: "/studio/:path*",
+        destination: `${studioUrl}/:path*`,
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
