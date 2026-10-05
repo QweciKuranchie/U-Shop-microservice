@@ -23,6 +23,7 @@ overrides:
   # Security overrides — force patched versions of vulnerable transitive deps
   next: '>=16.3.6'
   axios: '>=1.20.0'
+  'jsdom>undici': '>=6.28.1 <7'
   undici: '>=7.29.1'
   fast-uri: '>=3.1.4'
   nanoid: '>=5.1.0'
