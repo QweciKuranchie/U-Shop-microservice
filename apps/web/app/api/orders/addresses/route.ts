@@ -88,7 +88,8 @@ export async function POST(request: NextRequest) {
     if (isDefault) {
       await client
         .patch({
-          query: `*[_type == "address" && email == "${userEmail}" && default == true]`,
+          query: `*[_type == "address" && email == $email && default == true]`,
+          params: { email: userEmail },
         })
         .set({ default: false })
         .commit();
@@ -184,7 +185,8 @@ export async function PUT(request: NextRequest) {
     if (isDefault) {
       await client
         .patch({
-          query: `*[_type == "address" && email == "${userEmail}" && default == true && _id != "${_id}"]`,
+          query: `*[_type == "address" && email == $email && default == true && _id != $id]`,
+          params: { email: userEmail, id: _id },
         })
         .set({ default: false })
         .commit();

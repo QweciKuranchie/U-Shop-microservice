@@ -1,4 +1,5 @@
 import Container from "@/components/Container";
+import { serializeJsonLd } from "@repo/utils/json-ld";
 import DynamicBreadcrumb from "@/components/DynamicBreadcrumb";
 import { getCategories } from "@repo/sanity/queries";
 import { Category, Product } from "@repo/sanity";
@@ -91,13 +92,13 @@ export default async function CategoryPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(breadcrumbSchema),
+          __html: serializeJsonLd(breadcrumbSchema),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(itemListSchema),
+          __html: serializeJsonLd(itemListSchema),
         }}
       />
 

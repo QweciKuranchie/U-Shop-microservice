@@ -159,14 +159,6 @@ export async function deleteAddressForUser(addressId: string) {
   }
 }
 
-// Cart simulation actions (since we're using Zustand for cart management)
-// These could be extended to use a server-side cart in the future
-export async function simulateAddToCart() {
-  // For now, this would be handled by client-side Zustand
-  // But this structure allows for future server-side cart management
-  return { success: true };
-}
-
 export async function getUserEmailFromClerk() {
   try {
     const { userId } = await auth();

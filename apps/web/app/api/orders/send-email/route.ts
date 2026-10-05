@@ -1,93 +1,61 @@
 import { NextRequest, NextResponse } from "next/server";
+import { writeClient } from "@repo/sanity";
+import { checkRateLimitByKey } from "@repo/utils/rate-limit";
 import { getAuthUser } from "@/lib/getAuthUser";
-import {
-  sendOrderConfirmationEmail,
-  OrderConfirmationData,
-} from "@/lib/emailService";
-import { getEmailImageUrl } from "@/lib/emailImageUtils";
+import { sendOrderConfirmationEmail } from "@/lib/emailService";
+import { PAYMENT_METHODS } from "@/lib/orderStatus";
+import { buildOrderConfirmationData, type OrderForEmail } from "@/lib/orders/orderEmail";
 
-// Extended interface for email preparation that can handle Sanity images
-interface EmailOrderItem {
-  name: string;
-  price: number;
-  quantity: number;
-  image?: string | { asset?: { _ref?: string; url?: string } }; // Can be string URL or Sanity image object
-}
-
-interface EmailOrderData {
-  customerName: string;
-  customerEmail: string;
-  orderId: string;
-  orderDate: string;
-  items: EmailOrderItem[];
-  subtotal: number;
-  shipping: number;
-  tax: number;
-  total: number;
-  shippingAddress: {
-    name: string;
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
-  };
-  estimatedDelivery?: string;
-}
-
+/**
+ * Sends the confirmation email for a Pay-on-Delivery order (card/MoMo orders are
+ * emailed by the payment webhook).
+ *
+ * The body is just `{ orderId }`. The message is built from the stored order and
+ * sent to the order's own address. It used to accept a full client-built
+ * `orderData` (recipient, items, totals), letting any signed-in user send
+ * arbitrary, branded "order confirmation" emails to any address.
+ */
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await getAuthUser(request);
-
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { orderData }: { orderData: EmailOrderData } = await request.json();
+    const limited = checkRateLimitByKey(userId, "orders:send-email", { limit: 5, windowMs: 60_000 });
+    if (limited) return limited;
 
-    if (!orderData) {
-      return NextResponse.json(
-        { error: "Order data is required" },
-        { status: 400 }
-      );
+    const { orderId } = (await request.json().catch(() => ({}))) as { orderId?: string };
+    if (!orderId) {
+      return NextResponse.json({ error: "Order ID is required" }, { status: 400 });
     }
 
-    // Convert EmailOrderData to OrderConfirmationData with proper image URLs
-    const emailDataWithImages: OrderConfirmationData = {
-      ...orderData,
-      items: orderData.items.map((item) => ({
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        image: getEmailImageUrl(item.image),
-      })),
-    };
+    const order = await writeClient.fetch<
+      (OrderForEmail & { clerkUserId?: string; paymentMethod?: string }) | null
+    >(
+      `*[_type == "order" && _id == $orderId][0]{
+        orderNumber, orderDate, customerName, email, subtotal, shipping, tax, totalPrice,
+        clerkUserId, paymentMethod,
+        items[]{ quantity, price, product->{ name, price, images } },
+        shippingAddress->{ name, address, city, state, zip }, address
+      }`,
+      { orderId }
+    );
 
-    const emailResult = await sendOrderConfirmationEmail(emailDataWithImages);
-
-    if (emailResult.success) {
-      return NextResponse.json({
-        success: true,
-        messageId: emailResult.messageId,
-        message: "Email sent successfully",
-      });
-    } else {
-      console.error(
-        "Failed to send order confirmation email:",
-        emailResult.error
-      );
-      return NextResponse.json(
-        {
-          success: false,
-          error: emailResult.error || "Failed to send email",
-        },
-        { status: 500 }
-      );
+    if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    if (order.clerkUserId !== userId) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    if (order.paymentMethod !== PAYMENT_METHODS.PAY_ON_DELIVERY) {
+      return NextResponse.json({ error: "Confirmation emails for paid orders are sent automatically" }, { status: 400 });
     }
+
+    const emailResult = await sendOrderConfirmationEmail(buildOrderConfirmationData(order));
+    if (!emailResult.success) {
+      console.error("Failed to send order confirmation email:", emailResult.error);
+      return NextResponse.json({ success: false, error: "Failed to send email" }, { status: 500 });
+    }
+    return NextResponse.json({ success: true, messageId: emailResult.messageId, message: "Email sent successfully" });
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
     console.error("Email sending error:", error);
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return NextResponse.json({ error: "Failed to send email" }, { status: 500 });
   }
 }

@@ -1,4 +1,5 @@
 import React from "react";
+import { serializeJsonLd } from "@repo/utils/json-ld";
 import Container from "@/components/Container";
 import HomeBanner from "@/components/HomeBanner";
 import ProductGrid from "@/components/ProductGrid";
@@ -31,13 +32,13 @@ const Home = async () => {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(orgSchema),
+          __html: serializeJsonLd(orgSchema),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(websiteSchema),
+          __html: serializeJsonLd(websiteSchema),
         }}
       />
 

@@ -1,102 +1,84 @@
+import { cache } from "react";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { backendClient } from "@repo/sanity/client";
 
 /**
- * Validates whether the given Clerk user ID or email belongs to an authorized Administrator.
+ * Single source of truth for "is this user an administrator?".
+ * (Previously duplicated verbatim in apps/admin/lib/adminAuth.ts, with a third,
+ * weaker copy in the web app's cancellation actions.)
+ *
+ * Grants admin ONLY from sources a normal user cannot write:
+ *  1. Clerk public/private metadata (server-written).
+ *  2. A VERIFIED Clerk email present in the server-side ADMIN_EMAILS allow-list.
+ *  3. `isAdmin` / `role` flags on the Sanity user (Studio/admin-written).
+ *
+ * Removed on purpose:
+ *  - matching the Sanity user's `email` field: that field was populated from
+ *    client input, so any signed-in user could grant themselves admin;
+ *  - NEXT_PUBLIC_ADMIN_EMAIL: a public (browser-visible) variable has no place in
+ *    an authorization decision;
+ *  - trusting UNVERIFIED Clerk email addresses.
  */
-export async function verifyIsAdmin(clerkUserId?: string | null): Promise<boolean> {
+
+// Legacy built-in addresses are kept (verified-email only) so existing admins are
+// not locked out. Move them to ADMIN_EMAILS and delete this list.
+const LEGACY_ADMIN_EMAILS = ["support@ushopgh.com", "admin@ushopgh.com"];
+
+function adminAllowList(): Set<string> {
+  const configured = [process.env.ADMIN_EMAIL, ...(process.env.ADMIN_EMAILS?.split(",") ?? [])];
+  return new Set(
+    [...configured, ...LEGACY_ADMIN_EMAILS]
+      .filter((e): e is string => Boolean(e))
+      .map((e) => e.toLowerCase().trim())
+  );
+}
+
+async function computeIsAdmin(clerkUserId: string): Promise<boolean> {
   try {
-    if (!clerkUserId) {
-      const session = await auth();
-      clerkUserId = session.userId;
-    }
-
-    if (!clerkUserId) {
-      return false;
-    }
-
-    // 1. Fetch user from Clerk
     const clerk = await clerkClient();
     const clerkUser = await clerk.users.getUser(clerkUserId).catch(() => null);
+    if (!clerkUser) return false;
 
-    if (!clerkUser) {
-      return false;
-    }
-
-    // 2. Check Clerk Public/Private Metadata for 'admin' role
-    const publicMetadata = (clerkUser.publicMetadata || {}) as Record<string, unknown>;
-    const privateMetadata = (clerkUser.privateMetadata || {}) as Record<string, unknown>;
-
-    if (
-      publicMetadata.role === "admin" ||
-      publicMetadata.isAdmin === true ||
-      privateMetadata.role === "admin" ||
-      privateMetadata.isAdmin === true
-    ) {
+    const pub = (clerkUser.publicMetadata || {}) as Record<string, unknown>;
+    const priv = (clerkUser.privateMetadata || {}) as Record<string, unknown>;
+    if (pub.role === "admin" || pub.isAdmin === true || priv.role === "admin" || priv.isAdmin === true) {
       return true;
     }
 
-    // 3. Check environment-configured admin emails
-    const userEmails = clerkUser.emailAddresses.map((e) => e.emailAddress.toLowerCase().trim());
-    const configuredAdminEmails = [
-      process.env.ADMIN_EMAIL,
-      process.env.NEXT_PUBLIC_ADMIN_EMAIL,
-      ...(process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(",") : []),
-      "support@ushopgh.com",
-      "admin@ushopgh.com",
-    ]
-      .filter((e): e is string => Boolean(e))
-      .map((e) => e.toLowerCase().trim());
-
-    const hasMatchingAdminEmail = userEmails.some((userEmail) =>
-      configuredAdminEmails.includes(userEmail)
+    const allow = adminAllowList();
+    const hasVerifiedAllowedEmail = clerkUser.emailAddresses.some(
+      (e) => e.verification?.status === "verified" && allow.has(e.emailAddress.toLowerCase().trim())
     );
+    if (hasVerifiedAllowedEmail) return true;
 
-    if (hasMatchingAdminEmail) {
-      return true;
-    }
+    const sanityUser = await backendClient
+      .fetch<{ isAdmin?: boolean; role?: string } | null>(
+        `*[_type == "user" && clerkUserId == $clerkUserId][0]{ isAdmin, role }`,
+        { clerkUserId }
+      )
+      .catch(() => null);
 
-    // 4. Check Sanity User Record
-    const sanityUser = await backendClient.fetch(
-      `*[_type == "user" && clerkUserId == $clerkUserId][0]{
-        isAdmin,
-        role,
-        email
-      }`,
-      { clerkUserId }
-    ).catch(() => null);
-
-    if (
-      sanityUser &&
-      (sanityUser.isAdmin === true ||
-        sanityUser.role === "admin" ||
-        (sanityUser.email && configuredAdminEmails.includes(sanityUser.email.toLowerCase().trim())))
-    ) {
-      return true;
-    }
-
-    return false;
+    return sanityUser?.isAdmin === true || sanityUser?.role === "admin";
   } catch (error) {
     console.error("Error verifying admin status:", error);
     return false;
   }
 }
 
-/**
- * Enforces admin authorization in server actions or route handlers.
- * Throws or returns unauthorized response if the user is not an admin.
- */
+// De-duplicates the 2 Clerk calls + 1 Sanity query when one request checks twice.
+const cachedIsAdmin = cache(computeIsAdmin);
+
+/** Whether the given (or current) Clerk user is an administrator. */
+export async function verifyIsAdmin(clerkUserId?: string | null): Promise<boolean> {
+  const id = clerkUserId ?? (await auth()).userId;
+  if (!id) return false;
+  return cachedIsAdmin(id);
+}
+
+/** Throws unless the current user is an administrator. */
 export async function requireAdmin(): Promise<{ userId: string; isAdmin: boolean }> {
   const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error("Unauthorized: Please log in");
-  }
-
-  const isAdmin = await verifyIsAdmin(userId);
-  if (!isAdmin) {
-    throw new Error("Forbidden: Administrator access required");
-  }
-
+  if (!userId) throw new Error("Unauthorized: Please log in");
+  if (!(await verifyIsAdmin(userId))) throw new Error("Forbidden: Administrator access required");
   return { userId, isAdmin: true };
 }

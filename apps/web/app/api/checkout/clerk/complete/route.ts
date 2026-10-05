@@ -1,52 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { writeClient } from "@repo/sanity";
-import { PAYMENT_STATUSES } from "@/lib/orderStatus";
-import { getAuthUser } from "@/lib/getAuthUser";
+import { NextResponse } from "next/server";
 
-export const POST = async (request: NextRequest) => {
-  try {
-    const { userId } = await getAuthUser(request);
-
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const reqBody = await request.json();
-    const { orderId, sessionId, status } = reqBody;
-
-    if (!orderId || !sessionId) {
-      return NextResponse.json(
-        { error: "Order ID and Session ID are required" },
-        { status: 400 }
-      );
-    }
-
-    // Update the order with payment status
-    const updatedOrder = await writeClient
-      .patch(orderId)
-      .set({
-        clerkPaymentId: sessionId,
-        clerkPaymentStatus: status || "completed",
-        paymentStatus:
-          status === "completed"
-            ? PAYMENT_STATUSES.PAID
-            : PAYMENT_STATUSES.PENDING,
-        stripePaymentIntentId: sessionId, // Store for reference
-      })
-      .commit();
-
-    return NextResponse.json({
-      success: true,
-      order: updatedOrder,
-      message: "Payment status updated successfully",
-    });
-  } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    console.error("Clerk payment completion error:", error);
-    return NextResponse.json(
-      { error: errorMessage || "Failed to update payment status" },
-      { status: 500 }
-    );
-  }
-};
+/**
+ * DISABLED. This endpoint used to mark ANY order (no ownership check) as paid
+ * from a client-supplied `status: "completed"`, with no payment taking place — a
+ * leftover from a simulated "Clerk payment" flow that nothing in the real
+ * checkout uses. Real payments are confirmed only by Paystack (webhook/callback)
+ * after amount verification. Mirrors the already-disabled /api/orders/[id]/pay.
+ */
+export async function POST() {
+  return NextResponse.json({ error: "This payment method is not available." }, { status: 501 });
+}

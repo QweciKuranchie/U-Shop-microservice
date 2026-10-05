@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getImageKitAuthParams } from "@repo/media";
-import { checkRateLimit } from "@repo/utils";
+import { checkRateLimit } from "@repo/utils/rate-limit";
 
 export async function GET(request: NextRequest) {
   try {

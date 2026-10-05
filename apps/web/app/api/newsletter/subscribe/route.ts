@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { subscribeToNewsletter } from "@/actions/subscriptionActions";
 import { sendMail } from "@/lib/emailService";
-import { checkRateLimit, getClientIp } from "@repo/utils";
+import { checkRateLimit, getClientIp } from "@repo/utils/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
