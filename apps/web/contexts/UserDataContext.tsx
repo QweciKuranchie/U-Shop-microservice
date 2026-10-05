@@ -2,12 +2,14 @@
 
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
+  useRef,
   useState,
-  useCallback,
 } from "react";
-import { useUser, useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 
 interface UserData {
   ordersCount: number;
@@ -20,112 +22,85 @@ interface UserDataContextType extends UserData {
   refreshUserData: () => Promise<void>;
 }
 
-const UserDataContext = createContext<UserDataContextType | undefined>(
-  undefined
-);
+const EMPTY: UserData = { ordersCount: 0, unreadNotifications: 0, walletBalance: 0, isLoading: false };
+const CACHE_DURATION = 30_000;
 
-// Cache for user data to prevent unnecessary API calls
-let cachedData: UserData | null = null;
-let cacheTimestamp = 0;
-const CACHE_DURATION = 30000; // 30 seconds
+const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
 
 export function UserDataProvider({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
-  const [userData, setUserData] = useState<UserData>({
-    ordersCount: 0,
-    unreadNotifications: 0,
-    walletBalance: 0,
-    isLoading: false,
-  });
+  const userId = user?.id;
+  const [userData, setUserData] = useState<UserData>(EMPTY);
+
+  // Cache is keyed by user id and lives with the provider. It used to be a
+  // module-level variable shared by whoever was signed in, so switching accounts
+  // within 30s could show the previous account's wallet balance.
+  const cache = useRef<{ userId: string; data: UserData; at: number } | null>(null);
 
   const fetchUserData = useCallback(
-    async (forceRefresh = false) => {
-      if (!user || !isLoaded) return;
+    async (forceRefresh = false, signal?: AbortSignal) => {
+      if (!userId || !isLoaded) return;
 
-      // Use cached data if available and not expired
-      const now = Date.now();
-      if (
-        !forceRefresh &&
-        cachedData &&
-        now - cacheTimestamp < CACHE_DURATION
-      ) {
-        setUserData(cachedData);
+      const hit = cache.current;
+      if (!forceRefresh && hit && hit.userId === userId && Date.now() - hit.at < CACHE_DURATION) {
+        setUserData(hit.data);
         return;
       }
 
       setUserData((prev) => ({ ...prev, isLoading: true }));
-
       try {
         const token = await getToken().catch(() => null);
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
-        if (token) headers["Authorization"] = `Bearer ${token}`;
-
-        // Fetch all user data in a single optimized API call
         const response = await fetch("/api/user/combined-data", {
-          headers,
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           cache: "no-store",
+          signal,
         });
 
-        if (response.ok) {
-          const data = await response.json();
-
-          const newUserData = {
-            ordersCount: data.ordersCount || 0,
-            unreadNotifications: data.unreadNotifications || 0,
-            walletBalance: data.walletBalance || 0,
-            isLoading: false,
-          };
-
-          // Update cache
-          cachedData = newUserData;
-          cacheTimestamp = now;
-
-          setUserData(newUserData);
-        } else {
+        if (!response.ok) {
           setUserData((prev) => ({ ...prev, isLoading: false }));
+          return;
         }
+        const data = await response.json();
+        const next: UserData = {
+          ordersCount: data.ordersCount || 0,
+          unreadNotifications: data.unreadNotifications || 0,
+          walletBalance: data.walletBalance || 0,
+          isLoading: false,
+        };
+        cache.current = { userId, data: next, at: Date.now() };
+        setUserData(next);
       } catch (error) {
+        if ((error as Error).name === "AbortError") return; // unmounted / user changed
         console.error("Error fetching user data:", error);
         setUserData((prev) => ({ ...prev, isLoading: false }));
       }
     },
-    [user, isLoaded, getToken]
+    [userId, isLoaded, getToken]
   );
 
   useEffect(() => {
-    if (isLoaded) {
-      if (user) {
-        const timer = setTimeout(() => {
-          fetchUserData();
-        }, 0);
-        return () => clearTimeout(timer);
-      } else {
-        cachedData = null;
-        setUserData({
-          ordersCount: 0,
-          unreadNotifications: 0,
-          walletBalance: 0,
-          isLoading: false,
-        });
-      }
+    if (!isLoaded) return;
+    if (!userId) {
+      cache.current = null;
+      setUserData(EMPTY);
+      return;
     }
-  }, [user, isLoaded, fetchUserData]);
+    const controller = new AbortController();
+    fetchUserData(false, controller.signal);
+    return () => controller.abort();
+  }, [userId, isLoaded, fetchUserData]);
 
-  const refreshUserData = useCallback(async () => {
-    await fetchUserData(true);
-  }, [fetchUserData]);
+  const refreshUserData = useCallback(() => fetchUserData(true), [fetchUserData]);
 
-  return (
-    <UserDataContext.Provider
-      value={{
-        ...userData,
-        refreshUserData,
-      }}
-    >
-      {children}
-    </UserDataContext.Provider>
-  );
+  // Stable identity: consumers re-render only when the data actually changes,
+  // not on every provider render.
+  const value = useMemo(() => ({ ...userData, refreshUserData }), [userData, refreshUserData]);
+
+  return <UserDataContext.Provider value={value}>{children}</UserDataContext.Provider>;
 }
 
 export function useUserData() {

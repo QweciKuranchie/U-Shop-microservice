@@ -24,12 +24,15 @@
   },
   "peerDependencies": {
     "@clerk/nextjs": ">=6",
-    "next": ">=15"
+    "next": ">=15",
+    "react": ">=19"
   },
   "devDependencies": {
     "@clerk/nextjs": "^6.39.6",
     "@repo/config": "workspace:*",
     "next": "16.3.6",
-    "typescript": "^5"
+    "typescript": "^5",
+    "react": "^19.2.4",
+    "@types/react": "^19"
   }
 }

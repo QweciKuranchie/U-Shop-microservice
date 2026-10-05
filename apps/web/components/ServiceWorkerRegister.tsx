@@ -2,41 +2,30 @@
 
 import { useEffect } from "react";
 
+const UPDATE_CHECK_MS = 60 * 60 * 1000;
+
 export function ServiceWorkerRegister() {
   useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      "serviceWorker" in navigator &&
-      process.env.NODE_ENV === "production"
-    ) {
-      navigator.serviceWorker
-        .register("/sw.js", { scope: "/" })
-        .then((registration) => {
-          // Check for updates periodically (every 60 minutes)
-          setInterval(() => {
-            registration.update();
-          }, 60 * 60 * 1000);
+    if (!("serviceWorker" in navigator) || process.env.NODE_ENV !== "production") return;
 
-          // Handle updates: notify user when new version is available
-          registration.addEventListener("updatefound", () => {
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener("statechange", () => {
-                if (
-                  newWorker.state === "activated" &&
-                  navigator.serviceWorker.controller
-                ) {
-                  // New service worker activated — could show an update toast here
-                  console.log("[SW] New version available. Refresh to update.");
-                }
-              });
-            }
-          });
-        })
-        .catch((error) => {
-          console.error("[SW] Registration failed:", error);
-        });
-    }
+    let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+
+    navigator.serviceWorker
+      .register("/sw.js", { scope: "/" })
+      .then((registration) => {
+        if (cancelled) return;
+        // Cleared on unmount (previously never cleared; StrictMode/HMR stacked them).
+        intervalId = setInterval(() => {
+          registration.update().catch(() => {});
+        }, UPDATE_CHECK_MS);
+      })
+      .catch((error) => console.error("[SW] Registration failed:", error));
+
+    return () => {
+      cancelled = true;
+      if (intervalId) clearInterval(intervalId);
+    };
   }, []);
 
   return null;

@@ -22,6 +22,18 @@
     "./constants": {
       "import": "./src/constants.ts",
       "types": "./src/constants.ts"
+    },
+    "./rate-limit": {
+      "import": "./src/rateLimit.ts",
+      "types": "./src/rateLimit.ts"
+    },
+    "./pricing": {
+      "import": "./src/pricing.ts",
+      "types": "./src/pricing.ts"
+    },
+    "./json-ld": {
+      "import": "./src/jsonLd.ts",
+      "types": "./src/jsonLd.ts"
     }
   },
   "peerDependencies": {
@@ -32,6 +44,12 @@
   "devDependencies": {
     "@repo/config": "workspace:*",
     "next": "16.3.6",
-    "typescript": "^5"
+    "typescript": "^5",
+    "tsx": "^4.23.0",
+    "@types/node": "^20"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
   }
 }
