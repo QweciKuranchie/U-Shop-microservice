@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { saveContactMessage } from "@repo/sanity";
-import { checkRateLimit, getClientIp } from "@repo/utils";
+import { checkRateLimit, getClientIp } from "@repo/utils/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {

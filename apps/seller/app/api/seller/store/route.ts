@@ -1,6 +1,16 @@
 import { createServerClient } from "@repo/supabase/server";
 import { client, writeClient } from "@repo/sanity";
 import { NextRequest, NextResponse } from "next/server";
+import { omitProtectedFields } from "@repo/utils";
+
+// Review outcome, verification badges, rating, account status and identity links
+// are controlled by U-Shop admins; a seller must not be able to set them (this
+// route used to `set` the raw body, allowing self-approval of KYC).
+const PROTECTED_STORE_FIELDS = [
+  "kycStatus", "kycRejectionReason", "kycReviewedAt", "kycReviewedBy",
+  "verifiedStudent", "verifiedSeller", "rating", "status",
+  "clerkUserId", "supabaseUserId", "sellerType", "slug",
+];
 
 export async function GET() {
   const supabase = await createServerClient();
@@ -73,7 +83,8 @@ export async function PATCH(request: NextRequest) {
   );
 
   if (store?._id) {
-    const updated = await writeClient.patch(store._id).set(body).commit();
+    const updates = omitProtectedFields(body, PROTECTED_STORE_FIELDS) ?? {};
+    const updated = await writeClient.patch(store._id).set(updates).commit();
     return NextResponse.json({ store: updated });
   }
 

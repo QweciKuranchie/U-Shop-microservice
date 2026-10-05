@@ -1,5 +1,6 @@
 "use client";
 
+import { computeOrderTotals, resolvePromoCode } from "@repo/utils/pricing";
 import React, { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useSearchParams } from "next/navigation";
@@ -55,8 +56,6 @@ export function CheckoutContent() {
   const {
     items: cart,
     resetCart,
-    getSubTotalPrice,
-    getTotalDiscount,
   } = useCartStore();
   const { placeOrder, isPlacingOrder, orderStep } = useOrderPlacement({
     user: user!,
@@ -87,57 +86,26 @@ export function CheckoutContent() {
     isActive: boolean;
   } | null>(null);
 
-  // Real pricing structure based on live cart items from Sanity
-  const grossSubtotal = getSubTotalPrice(); // Gross amount (before discount)
-  const totalDiscount = getTotalDiscount(); // Total product discount amount from Sanity
-  const currentSubtotal = grossSubtotal - totalDiscount; // After product discount
-
-  // Business account discount (2% additional discount for verified business users)
-  const businessDiscount = userProfile?.isBusiness ? currentSubtotal * 0.02 : 0;
-  const finalSubtotal = currentSubtotal - businessDiscount;
-
-  // Real Promo Code Discount calculation
-  const promoDiscountAmount = appliedDiscount
-    ? appliedDiscount.type === "percentage"
-      ? (finalSubtotal * appliedDiscount.amount) / 100
-      : appliedDiscount.amount
-    : 0;
-
-  // Real Shipping calculation based on selected address location & free shipping threshold
-  const calculateShippingFee = (addr: OrderAddress | null, subtotalAmount: number): number => {
-    if (subtotalAmount >= 500) return 0; // Free shipping on orders GH₵500+
-    if (!addr) return 20; // Base default shipping fee before address selection
-
-    const location = `${addr.city || ""} ${addr.state || ""} ${addr.address || ""}`.toLowerCase();
-
-    // Greater Accra Region
-    if (
-      location.includes("accra") ||
-      location.includes("tema") ||
-      location.includes("legon") ||
-      location.includes("madina") ||
-      location.includes("spintex") ||
-      location.includes("east legon") ||
-      location.includes("kasoa") ||
-      location.includes("adenta") ||
-      location.includes("dome") ||
-      location.includes("achimota")
-    ) {
-      return 15;
-    }
-
-    // Ashanti Region
-    if (location.includes("kumasi") || location.includes("obuasi") || location.includes("ashanti")) {
-      return 25;
-    }
-
-    // All other Ghana regions/cities
-    return 35;
-  };
-
-  const shipping = calculateShippingFee(selectedAddress, finalSubtotal);
-  const tax = 0; // Tax removed from order summary
-  const total = Math.max(0, finalSubtotal - promoDiscountAmount + shipping);
+  // Display totals come from the SAME function the server uses to price the order
+  // (@repo/utils/pricing), so what is shown is what is charged. The server
+  // re-computes from the catalogue and rejects the order if prices have moved.
+  const totals = computeOrderTotals({
+    lines: cart.map((item) => ({
+      price: item.product.price,
+      discount: item.product.discount,
+      quantity: item.quantity,
+    })),
+    isBusiness: userProfile?.isBusiness === true,
+    promoCode: appliedDiscount?.code,
+    address: selectedAddress,
+  });
+  const totalDiscount = totals.productDiscount;
+  const businessDiscount = totals.businessDiscount;
+  const finalSubtotal = totals.subtotal;
+  const promoDiscountAmount = totals.promoDiscount;
+  const shipping = totals.shipping;
+  const tax = totals.tax;
+  const total = totals.total;
 
   // Fetch user profile for business account status
   useEffect(() => {
@@ -295,7 +263,9 @@ export function CheckoutContent() {
         finalSubtotal,
         shipping,
         tax,
-        total
+        total,
+        false,
+        appliedDiscount?.code
       );
 
       if (!result || !result.success) {
@@ -323,9 +293,6 @@ export function CheckoutContent() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             orderId: result.orderId,
-            orderNumber: result.orderNumber,
-            amount: total,
-            email: userEmail,
             channel,
             ...(channel === "momo" && { phone: momoPhoneNumber.trim() }),
           }),
@@ -825,16 +792,15 @@ export function CheckoutContent() {
                         }
                         setIsApplyingCode(true);
                         setDiscountError("");
-                        // Simulate API call — replace with actual validation
-                        await new Promise((r) => setTimeout(r, 800));
-                        // Mock: accept "SAVE10" for 10% off, "FLAT20" for GH₵20 off
-                        const code = discountCode.trim().toUpperCase();
-                        if (code === "SAVE10") {
-                          setAppliedDiscount({ code, amount: 10, type: "percentage" });
-                          toast.success("Discount applied!", { description: "10% off your order" });
-                        } else if (code === "FLAT20") {
-                          setAppliedDiscount({ code, amount: 20, type: "fixed" });
-                          toast.success("Discount applied!", { description: "GH₵20.00 off your order" });
+                        const promo = resolvePromoCode(discountCode);
+                        if (promo) {
+                          setAppliedDiscount({ code: promo.code, amount: promo.amount, type: promo.type });
+                          toast.success("Discount applied!", {
+                            description:
+                              promo.type === "percentage"
+                                ? `${promo.amount}% off your order`
+                                : `GH₵${promo.amount.toFixed(2)} off your order`,
+                          });
                         } else {
                           setDiscountError("Invalid discount code");
                         }

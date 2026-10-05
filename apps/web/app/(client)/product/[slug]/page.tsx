@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { serializeJsonLd } from "@repo/utils/json-ld";
 import ProductPageSkeleton from "@/components/ProductPageSkeleton";
 import { getProductBySlug, getRelatedProducts, getProductsFromSeller, getBrand } from "@repo/sanity/queries";
 import { notFound } from "next/navigation";
@@ -100,13 +101,13 @@ const ProductPageContent = async ({ slug }: { slug: string }) => {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(productSchema),
+          __html: serializeJsonLd(productSchema),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(breadcrumbSchema),
+          __html: serializeJsonLd(breadcrumbSchema),
         }}
       />
 

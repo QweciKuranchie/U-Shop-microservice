@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { client } from "@repo/sanity";
 
@@ -55,6 +55,13 @@ export async function createOrUpdateUser(userData: CreateUserData) {
       throw new Error("User not authenticated");
     }
 
+    // Identity comes from Clerk, never from the caller. `userData.email` used to be
+    // written straight into the Sanity user record, and several admin checks trust
+    // that field - so any signed-in user could set it to an admin address.
+    const clerkUser = await currentUser();
+    const verifiedEmail =
+      clerkUser?.primaryEmailAddress?.emailAddress ?? clerkUser?.emailAddresses?.[0]?.emailAddress;
+
     // Check if user already exists using verified session userId
     const existingUser = await client.fetch(
       `*[_type == "user" && clerkUserId == $clerkUserId][0]`,
@@ -66,7 +73,7 @@ export async function createOrUpdateUser(userData: CreateUserData) {
       await client
         .patch(existingUser._id)
         .set({
-          email: userData.email,
+          ...(verifiedEmail ? { email: verifiedEmail } : {}),
           firstName: userData.firstName,
           lastName: userData.lastName,
           phone: userData.phone,
@@ -81,7 +88,7 @@ export async function createOrUpdateUser(userData: CreateUserData) {
       const newUser = await client.create({
         _type: "user",
         clerkUserId: userId,
-        email: userData.email,
+        ...(verifiedEmail ? { email: verifiedEmail } : {}),
         firstName: userData.firstName,
         lastName: userData.lastName,
         phone: userData.phone,

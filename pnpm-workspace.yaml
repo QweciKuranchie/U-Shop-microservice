@@ -42,3 +42,7 @@ overrides:
   '@eslint/plugin-kit': '>=0.3.4'
   serialize-javascript: '>=7.1.2'
 
+peerDependencyRules:
+  allowAny:
+    - utf-8-validate
+

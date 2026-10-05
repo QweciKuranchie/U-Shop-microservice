@@ -2,6 +2,7 @@
 
 import useCartStore, { CartItem } from "@/store";
 import { PAYMENT_METHODS, PaymentMethod } from "@/lib/orderStatus";
+import { useRef } from "react";
 import { toast } from "sonner";
 
 // Extended interface for email preparation that can handle Sanity images
@@ -84,6 +85,10 @@ export function useOrderPlacement({ user }: UseOrderPlacementProps) {
     setOrderPlacementState,
   } = useCartStore();
 
+  // One key per checkout attempt: a double-click or a retry after a network
+  // timeout resolves to the SAME order on the server instead of creating a second.
+  const attemptKey = useRef<string | null>(null);
+
   const placeOrder = async (
     selectedAddress: Address,
     selectedPaymentMethod: PaymentMethod,
@@ -91,7 +96,8 @@ export function useOrderPlacement({ user }: UseOrderPlacementProps) {
     shipping: number,
     tax: number,
     total: number,
-    redirectToCheckout: boolean = false
+    redirectToCheckout: boolean = false,
+    promoCode?: string | null
   ) => {
     if (!selectedAddress) {
       toast.error("Address Required", {
@@ -146,14 +152,17 @@ export function useOrderPlacement({ user }: UseOrderPlacementProps) {
       // Step 1: Validate and prepare order data
       setOrderPlacementState(true, "creating");
 
+      attemptKey.current ??= crypto.randomUUID();
+
+      // Send intent only. The server prices the order from the catalogue; the
+      // total below is just "what the shopper saw", used to detect price changes.
       const orderData = {
-        items: cartSnapshot,
-        shippingAddress: selectedAddress,
+        items: cartSnapshot.map((i) => ({ product: { _id: i.product._id }, quantity: i.quantity })),
+        shippingAddress: { _id: selectedAddress._id },
         paymentMethod: selectedPaymentMethod,
         totalAmount: total,
-        subtotal,
-        shipping,
-        tax,
+        promoCode: promoCode ?? undefined,
+        idempotencyKey: attemptKey.current,
       };
 
       // Create order in Sanity
@@ -169,6 +178,7 @@ export function useOrderPlacement({ user }: UseOrderPlacementProps) {
       }
 
       const orderResult = await orderResponse.json();
+      attemptKey.current = null; // order exists; the next purchase gets a fresh key
       const orderId = orderResult.order._id;
       const orderNumber = orderResult.order.orderNumber;
 
@@ -176,40 +186,11 @@ export function useOrderPlacement({ user }: UseOrderPlacementProps) {
       if (selectedPaymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY) {
         setOrderPlacementState(true, "emailing");
 
-        const emailData: EmailOrderData = {
-          customerName: resolveCustomerName(user),
-          customerEmail: user?.emailAddresses?.[0]?.emailAddress || "",
-          orderId: orderNumber,
-          orderDate: new Date().toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          }),
-          items: cartSnapshot.map((item) => ({
-            name: item.product.name || "Unknown Product",
-            price: item.product.price || 0,
-            quantity: item.quantity,
-            image: item.product.images?.[0] || undefined,
-          })),
-          subtotal,
-          shipping,
-          tax,
-          total,
-          shippingAddress: {
-            name: selectedAddress.name,
-            street: selectedAddress.address,
-            city: selectedAddress.city,
-            state: selectedAddress.state,
-            zipCode: selectedAddress.zip,
-            country: "Ghana",
-          },
-        };
-
         try {
           await fetch("/api/orders/send-email", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ orderData: emailData }),
+            body: JSON.stringify({ orderId }),
           });
         } catch (emailError) {
           console.error("Email sending failed for COD order:", emailError);

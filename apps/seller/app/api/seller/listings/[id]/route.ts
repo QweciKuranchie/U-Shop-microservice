@@ -2,6 +2,11 @@ import { createServerClient } from "@repo/supabase/server";
 import { client, writeClient } from "@repo/sanity";
 import { SELLER_STORE_QUERY } from "@repo/sanity/queries";
 import { NextRequest, NextResponse } from "next/server";
+import { omitProtectedFields } from "@repo/utils";
+
+// Fields a seller must not set on their own listing: ownership, merchandising
+// controlled by U-Shop, and review-derived aggregates.
+const PROTECTED_PRODUCT_FIELDS = ["store", "featured", "averageRating", "totalReviews", "ratingDistribution"];
 
 export async function PATCH(
   request: NextRequest,
@@ -30,8 +35,11 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found or not authorized" }, { status: 404 });
   }
 
-  const body = await request.json();
-  const updated = await writeClient.patch(id).set(body).commit();
+  const updates = omitProtectedFields(await request.json().catch(() => null), PROTECTED_PRODUCT_FIELDS);
+  if (!updates || Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: "No permitted fields to update" }, { status: 400 });
+  }
+  const updated = await writeClient.patch(id).set(updates).commit();
   return NextResponse.json({ product: updated });
 }
 

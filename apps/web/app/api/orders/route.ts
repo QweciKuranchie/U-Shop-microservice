@@ -1,273 +1,240 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getMyOrders } from "@repo/sanity";
-import { writeClient } from "@repo/sanity";
+import crypto from "node:crypto";
+import { NextRequest, NextResponse, after } from "next/server";
+import { z } from "zod";
+import { getMyOrders, writeClient } from "@repo/sanity";
+import { computeOrderTotals } from "@repo/utils/pricing";
+import { checkRateLimitByKey } from "@repo/utils/rate-limit";
 import { getAuthUser } from "@/lib/getAuthUser";
-import {
-  ORDER_STATUSES,
-  PAYMENT_STATUSES,
-  PAYMENT_METHODS,
-  PAYMENT_GATEWAYS,
-  PaymentMethod,
-} from "@/lib/orderStatus";
-import crypto from "crypto";
+import { ORDER_STATUSES, PAYMENT_METHODS } from "@/lib/orderStatus";
 import { sendOrderStatusNotification } from "@/lib/notificationService";
+import { buildOrderData, generateOrderNumber } from "@/lib/orders/buildOrderData";
 
-interface CartItem {
-  product: {
-    _id: string;
-    name?: string;
-    price?: number;
-    category?: string;
-  };
-  quantity: number;
-}
+/**
+ * Order creation is SERVER-AUTHORITATIVE.
+ *
+ * The client may only say WHICH products/quantities, WHICH address, WHICH
+ * payment method and WHICH promo code. Unit prices, discounts, stock, business
+ * status, shipping and the final total are all derived here from Sanity. The
+ * client's own `totalAmount` is used for exactly one thing: detecting that the
+ * price moved since the shopper last saw it (HTTP 409), never as the charge.
+ */
 
-export interface BuildOrderDataInput {
-  orderNumber: string;
-  customerName: string;
-  email: string;
-  phone: string;
-  clerkUserId: string;
-  items: Array<{
-    product: { _id: string; price?: number };
-    quantity: number;
-  }>;
-  shippingAddress: {
-    _id: string;
-    name?: string;
-    address?: string;
-    city?: string;
-    state?: string;
-    zip?: string;
-    phone?: string;
-  };
-  paymentMethod: PaymentMethod;
-  totalAmount: number;
-  subtotal: number;
-  shipping: number;
-  tax: number;
-}
+const METHODS = [
+  PAYMENT_METHODS.CARD,
+  PAYMENT_METHODS.MOBILE_MONEY,
+  PAYMENT_METHODS.PAY_ON_DELIVERY,
+] as const;
 
-export function buildOrderData(input: BuildOrderDataInput) {
-  const isPaystack =
-    input.paymentMethod === PAYMENT_METHODS.CARD ||
-    input.paymentMethod === PAYMENT_METHODS.MOBILE_MONEY;
+const bodySchema = z.object({
+  items: z
+    .array(
+      z.object({
+        product: z.object({ _id: z.string().min(1) }),
+        quantity: z.number().int().min(1).max(100),
+      })
+    )
+    .min(1)
+    .max(50),
+  shippingAddress: z.object({ _id: z.string().min(1) }),
+  paymentMethod: z.enum(METHODS),
+  promoCode: z.string().max(40).nullish(),
+  /** What the shopper saw. Compared with the server total; never charged. */
+  totalAmount: z.number().finite().nonnegative().optional(),
+  /** Per-attempt key so double-clicks / retries cannot create duplicate orders. */
+  idempotencyKey: z.string().min(8).max(100).optional(),
+});
 
-  return {
-    _type: "order" as const,
-    orderNumber: input.orderNumber,
-    customerName: input.customerName,
-    email: input.email,
-    phone: input.phone,
-    clerkUserId: input.clerkUserId,
-    items: input.items.map((item) => ({
-      _key: crypto.randomUUID(),
-      product: {
-        _type: "reference",
-        _ref: item.product._id,
-      },
-      quantity: item.quantity,
-      price: item.product.price ?? 0,
-    })),
-    totalPrice: input.totalAmount,
-    currency: "GHS",
-    amountDiscount: 0,
-    shippingAddress: {
-      _type: "reference",
-      _ref: input.shippingAddress._id,
-    },
-    address: {
-      _type: "object",
-      name: input.shippingAddress.name || "",
-      address: input.shippingAddress.address || "",
-      city: input.shippingAddress.city || "",
-      state: input.shippingAddress.state || "",
-      zip: input.shippingAddress.zip || "",
-    },
-    orderStatus: ORDER_STATUSES.PENDING,
-    status: ORDER_STATUSES.PENDING,
-    orderDate: new Date().toISOString(),
-    paymentMethod: input.paymentMethod,
-    paymentStatus: PAYMENT_STATUSES.PENDING,
-    paymentGateway: isPaystack
-      ? PAYMENT_GATEWAYS.PAYSTACK
-      : PAYMENT_GATEWAYS.NONE,
-    subtotal: input.subtotal,
-    shipping: input.shipping,
-    tax: input.tax,
-  };
-}
+const PRICE_EPSILON = 0.01;
+
+const validationMessage = (error: z.ZodError): string => {
+  switch (error.issues[0]?.path[0]) {
+    case "items":
+      return "No items provided";
+    case "shippingAddress":
+      return "Valid shipping address is required";
+    case "paymentMethod":
+      return "Invalid payment method";
+    default:
+      return "Invalid request";
+  }
+};
 
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await getAuthUser(request);
-
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
     const orders = await getMyOrders(userId);
-
     return NextResponse.json(orders || []);
   } catch (error) {
     console.error("Error fetching orders:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
-export const POST = async (request: NextRequest) => {
+export async function POST(request: NextRequest) {
   try {
-    // Check authentication
     const { userId, user } = await getAuthUser(request);
-
     if (!userId || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const reqBody = await request.json();
-    const {
-      items,
-      shippingAddress,
-      paymentMethod,
-      totalAmount,
-      subtotal,
-      shipping,
-      tax,
-    } = reqBody;
+    const limited = checkRateLimitByKey(userId, "orders:create", { limit: 10, windowMs: 60_000 });
+    if (limited) return limited;
 
-    // Validate required fields
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ error: "No items provided" }, { status: 400 });
+    const parsed = bodySchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) {
+      return NextResponse.json({ error: validationMessage(parsed.error) }, { status: 400 });
+    }
+    const body = parsed.data;
+
+    // Merge duplicate lines so a split cart can't dodge the per-product stock check.
+    const wanted = new Map<string, number>();
+    for (const line of body.items) {
+      wanted.set(line.product._id, (wanted.get(line.product._id) ?? 0) + line.quantity);
+    }
+    const productIds = [...wanted.keys()];
+
+    const clerkEmails = (user.emailAddresses ?? []).map((e) => e.emailAddress.toLowerCase());
+
+    // One round-trip, all authoritative, none CDN-cached.
+    const [products, sanityUser, address] = await Promise.all([
+      writeClient.fetch<Array<{ _id: string; name?: string; price?: number; discount?: number; stock?: number }>>(
+        `*[_type == "product" && _id in $ids]{ _id, name, price, discount, stock }`,
+        { ids: productIds }
+      ),
+      writeClient.fetch<{ _id: string; isBusiness?: boolean } | null>(
+        `*[_type == "user" && clerkUserId == $userId][0]{ _id, isBusiness }`,
+        { userId }
+      ),
+      writeClient.fetch<{
+        _id: string; name?: string; address?: string; city?: string; state?: string;
+        zip?: string; phone?: string; email?: string; userRef?: string;
+      } | null>(
+        `*[_type == "address" && _id == $id][0]{ _id, name, address, city, state, zip, phone, email, "userRef": user._ref }`,
+        { id: body.shippingAddress._id }
+      ),
+    ]);
+
+    // Address must exist AND belong to the caller (previously any address id, and
+    // any client-typed address text, was accepted and emailed/stored).
+    const ownsAddress =
+      !!address &&
+      ((!!sanityUser && address.userRef === sanityUser._id) ||
+        (!!address.email && clerkEmails.includes(address.email.toLowerCase())));
+    if (!address || !ownsAddress) {
+      return NextResponse.json({ error: "Valid shipping address is required" }, { status: 400 });
     }
 
-    if (!shippingAddress || !shippingAddress._id) {
+    // Catalogue + stock validation (same rules the client applied, now enforced).
+    const byId = new Map(products.map((p) => [p._id, p]));
+    const missing: string[] = [];
+    const unavailable: string[] = [];
+    for (const [id, quantity] of wanted) {
+      const product = byId.get(id);
+      if (!product) {
+        missing.push(id);
+      } else if (quantity > (product.stock ?? 0)) {
+        unavailable.push(product.name || id);
+      }
+    }
+    if (missing.length > 0) {
       return NextResponse.json(
-        { error: "Valid shipping address is required" },
-        { status: 400 }
+        { error: "Some items in your cart are no longer available", code: "PRODUCT_UNAVAILABLE" },
+        { status: 409 }
+      );
+    }
+    if (unavailable.length > 0) {
+      return NextResponse.json(
+        { error: `${unavailable.join(", ")} ${unavailable.length > 1 ? "have" : "has"} insufficient stock`, code: "INSUFFICIENT_STOCK" },
+        { status: 409 }
       );
     }
 
-    if (
-      !paymentMethod ||
-      !Object.values(PAYMENT_METHODS).includes(paymentMethod)
-    ) {
-      return NextResponse.json(
-        { error: "Invalid payment method" },
-        { status: 400 }
-      );
-    }
-
-    // Generate order number
-    const orderNumber = `ORDER-${Date.now()}-${Math.random()
-      .toString(36)
-      .substr(2, 9)
-      .toUpperCase()}`;
-
-    const userEmail = user.emailAddresses[0]?.emailAddress || "";
-    const userName =
-      `${user.firstName || ""} ${user.lastName || ""}`.trim() || "User";
-    const userPhone =
-      user.phoneNumbers?.[0]?.phoneNumber || shippingAddress.phone || "";
-
-    // Create order object using pure helper
-    const orderData = buildOrderData({
-      orderNumber,
-      customerName: userName,
-      email: userEmail,
-      phone: userPhone,
-      clerkUserId: userId,
-      items,
-      shippingAddress,
-      paymentMethod,
-      totalAmount,
-      subtotal,
-      shipping,
-      tax,
+    const pricedLines = [...wanted].map(([id, quantity]) => {
+      const p = byId.get(id)!;
+      return { productId: id, quantity, unitPrice: p.price ?? 0, discount: p.discount ?? 0 };
     });
 
-    // Create order in Sanity using writeClient (has create permissions)
-    const createdOrder = await writeClient.create(orderData);
+    const totals = computeOrderTotals({
+      lines: pricedLines.map((l) => ({ price: l.unitPrice, discount: l.discount, quantity: l.quantity })),
+      isBusiness: sanityUser?.isBusiness === true,
+      promoCode: body.promoCode,
+      address,
+    });
 
-    // Track order placed event
-    try {
-      await fetch(
-        `${
-          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-        }/api/analytics/track`,
+    if (body.totalAmount !== undefined && Math.abs(totals.total - body.totalAmount) > PRICE_EPSILON) {
+      return NextResponse.json(
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventName: "order_placed",
-            eventParams: {
-              orderId: createdOrder._id,
-              orderNumber: createdOrder.orderNumber,
-              amount: totalAmount,
-              status: createdOrder.orderStatus || createdOrder.status,
-              userId: userId,
-              paymentMethod: paymentMethod,
-              itemCount: items.length,
-              subtotal: subtotal,
-              shipping: shipping,
-              tax: tax,
-              customerEmail: userEmail,
-              products: items.map((item: CartItem) => ({
-                productId: item.product._id,
-                name: item.product.name || "Unknown Product",
-                quantity: item.quantity,
-                price: item.product.price || 0,
-              })),
-            },
-          }),
-        }
+          error: "Prices changed since you added these items. Please review your order total.",
+          code: "PRICE_CHANGED",
+          total: totals.total,
+        },
+        { status: 409 }
       );
-
-      // Also track purchase event for e-commerce analytics
-      await fetch(
-        `${
-          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-        }/api/analytics/track`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventName: "purchase",
-            eventParams: {
-              orderId: createdOrder._id,
-              value: totalAmount,
-              currency: "GHS",
-              items: items.map((item: CartItem) => ({
-                productId: item.product._id,
-                name: item.product.name || "Unknown Product",
-                category: item.product.category || "Uncategorized",
-                quantity: item.quantity,
-                price: item.product.price || 0,
-              })),
-              userId: userId,
-            },
-          }),
-        }
-      );
-    } catch (analyticsError) {
-      console.error("Failed to track order placed event:", analyticsError);
     }
 
-    // Send order confirmation notification to user
-    try {
-      await sendOrderStatusNotification({
-        clerkUserId: userId,
-        orderNumber: createdOrder.orderNumber,
-        orderId: createdOrder._id,
-        status: ORDER_STATUSES.PENDING,
+    const primaryEmail = user.primaryEmailAddress?.emailAddress ?? user.emailAddresses?.[0]?.emailAddress ?? "";
+    const orderNumber = generateOrderNumber();
+
+    // Deterministic document id → a retried/double-submitted request maps to the
+    // same order. The id covers the canonical request, so changing the cart or
+    // address and retrying (same key) correctly yields a NEW order.
+    const documentId = body.idempotencyKey
+      ? `order-${crypto
+          .createHash("sha256")
+          .update(
+            JSON.stringify([
+              userId,
+              body.idempotencyKey,
+              pricedLines.map((l) => [l.productId, l.quantity]).sort(),
+              address._id,
+              body.paymentMethod,
+              body.promoCode ?? null,
+            ])
+          )
+          .digest("hex")
+          .slice(0, 32)}`
+      : undefined;
+
+    const orderData = buildOrderData({
+      documentId,
+      orderNumber,
+      customerName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "User",
+      email: primaryEmail,
+      phone: user.phoneNumbers?.[0]?.phoneNumber || address.phone || "",
+      clerkUserId: userId,
+      items: pricedLines,
+      shippingAddress: address,
+      paymentMethod: body.paymentMethod,
+      totalAmount: totals.total,
+      subtotal: totals.subtotal,
+      shipping: totals.shipping,
+      tax: totals.tax,
+    });
+
+    const createdOrder = documentId
+      ? await writeClient.createIfNotExists({ ...orderData, _id: documentId })
+      : await writeClient.create(orderData);
+    const isNewOrder = createdOrder.orderNumber === orderNumber;
+
+    if (isNewOrder) {
+      // Off the critical path: the shopper no longer waits on a push notification.
+      // (The two loopback calls to /api/analytics/track were removed — that route
+      // is an empty stub that ignores its body.)
+      after(async () => {
+        try {
+          await sendOrderStatusNotification({
+            clerkUserId: userId,
+            orderNumber: createdOrder.orderNumber,
+            orderId: createdOrder._id,
+            status: ORDER_STATUSES.PENDING,
+          });
+        } catch (error) {
+          console.error("Failed to send order confirmation notification:", error);
+        }
       });
-    } catch (notificationError) {
-      console.error(
-        "Failed to send order confirmation notification:",
-        notificationError
-      );
     }
 
     return NextResponse.json({
@@ -282,16 +249,9 @@ export const POST = async (request: NextRequest) => {
       },
       message: "Order created successfully",
     });
-  } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
+  } catch (error) {
+    // Log the detail server-side; never return stack traces to the client.
     console.error("Order creation error:", error);
-    return NextResponse.json(
-      {
-        error: errorMessage || "Failed to create order",
-        details: error instanceof Error ? error.stack : null,
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
   }
-};
+}

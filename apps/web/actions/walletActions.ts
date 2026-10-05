@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { backendClient } from "@repo/sanity";
 import { v4 as uuidv4 } from "uuid";
+import { debitWallet } from "@/lib/wallet/walletService";
 
 // Types
 interface WalletTransaction {
@@ -113,142 +114,19 @@ export async function getWalletTransactions(): Promise<{
 }
 
 /**
- * Add credit to user wallet (used for refunds)
- * This is called when an order is cancelled
- */
-export async function addWalletCredit(
-  userId: string,
-  amount: number,
-  description: string,
-  orderId?: string,
-  processedBy?: string
-): Promise<{ success: boolean; message: string; newBalance?: number }> {
-  try {
-    // Get user's current balance
-    const user = await backendClient.fetch(
-      `*[_type == "user" && clerkUserId == $userId][0]{ 
-        _id, 
-        walletBalance, 
-        walletTransactions 
-      }`,
-      { userId }
-    );
-
-    if (!user) {
-      return { success: false, message: "User not found" };
-    }
-
-    const currentBalance = user.walletBalance || 0;
-    const newBalance = currentBalance + amount;
-
-    // Create transaction record
-    const transaction: WalletTransaction = {
-      id: uuidv4(),
-      type: "credit_refund",
-      amount,
-      balanceBefore: currentBalance,
-      balanceAfter: newBalance,
-      description,
-      orderId,
-      processedBy,
-      createdAt: new Date().toISOString(),
-      status: "completed",
-    };
-
-    // Update user with new balance and transaction
-    await backendClient
-      .patch(user._id)
-      .set({
-        walletBalance: newBalance,
-        walletTransactions: [transaction, ...(user.walletTransactions || [])],
-      })
-      .commit();
-
-    return {
-      success: true,
-      message: "Credit added successfully",
-      newBalance,
-    };
-  } catch (error) {
-    console.error("Error adding wallet credit:", error);
-    return {
-      success: false,
-      message: "Failed to add credit to wallet",
-    };
-  }
-}
-
-/**
  * Deduct amount from wallet (used during checkout)
  */
 export async function deductWalletBalance(
   amount: number,
   orderId: string
 ): Promise<{ success: boolean; message: string; newBalance?: number }> {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      return { success: false, message: "Unauthorized" };
-    }
-
-    const user = await backendClient.fetch(
-      `*[_type == "user" && clerkUserId == $userId][0]{ 
-        _id, 
-        walletBalance, 
-        walletTransactions 
-      }`,
-      { userId }
-    );
-
-    if (!user) {
-      return { success: false, message: "User not found" };
-    }
-
-    const currentBalance = user.walletBalance || 0;
-
-    if (currentBalance < amount) {
-      return {
-        success: false,
-        message: "Insufficient wallet balance",
-      };
-    }
-
-    const newBalance = currentBalance - amount;
-
-    // Create transaction record
-    const transaction: WalletTransaction = {
-      id: uuidv4(),
-      type: "debit_order",
-      amount,
-      balanceBefore: currentBalance,
-      balanceAfter: newBalance,
-      description: `Payment for order #${orderId}`,
-      orderId,
-      createdAt: new Date().toISOString(),
-      status: "completed",
-    };
-
-    // Update user
-    await backendClient
-      .patch(user._id)
-      .set({
-        walletBalance: newBalance,
-        walletTransactions: [transaction, ...(user.walletTransactions || [])],
-      })
-      .commit();
-
-    return {
-      success: true,
-      message: "Payment deducted from wallet",
-      newBalance,
-    };
-  } catch (error) {
-    console.error("Error deducting wallet balance:", error);
-    return {
-      success: false,
-      message: "Failed to deduct from wallet",
-    };
+  const { userId } = await auth();
+  if (!userId) {
+    return { success: false, message: "Unauthorized" };
   }
+  // Validation + optimistic locking live in the service (a negative amount used to
+  // CREDIT the wallet here).
+  return debitWallet(userId, amount, orderId);
 }
 
 /**

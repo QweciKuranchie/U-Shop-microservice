@@ -90,34 +90,6 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.salesCount - a.salesCount)
       .slice(0, limit);
 
-    // Track this analytics data
-    try {
-      await fetch(
-        `${
-          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-        }/api/analytics/track`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventName: "best_selling_products",
-            eventParams: {
-              products: bestSellers,
-              timeframe,
-              totalProducts: bestSellers.length,
-              totalRevenue: bestSellers.reduce((sum, p) => sum + p.revenue, 0),
-              totalSales: bestSellers.reduce((sum, p) => sum + p.salesCount, 0),
-            },
-          }),
-        }
-      );
-    } catch (analyticsError) {
-      console.error(
-        "Failed to track best selling products analytics:",
-        analyticsError
-      );
-    }
-
     // Get overall analytics
     const totalOrdersQuery = `count(*[_type == "order" && orderDate >= $startDate])`;
     const revenueOrdersQuery = `
