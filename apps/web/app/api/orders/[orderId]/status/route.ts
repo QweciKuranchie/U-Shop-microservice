@@ -72,10 +72,10 @@ export async function POST(
     _id: string;
     orderNumber: string;
     clerkUserId: string;
-    status: string;
+    orderStatus: string;
   } | null>(
     `*[_type == "order" && _id == $orderId][0]{
-      _id, orderNumber, clerkUserId, status
+      _id, orderNumber, clerkUserId, orderStatus
     }`,
     { orderId }
   );
@@ -87,7 +87,7 @@ export async function POST(
   // Update status in Sanity
   await writeClient
     .patch(orderId)
-    .set({ status: normalizedStatus, updatedAt: new Date().toISOString() })
+    .set({ orderStatus: normalizedStatus, updatedAt: new Date().toISOString() })
     .commit();
 
   // Trigger notification pipeline for key milestones
@@ -97,7 +97,7 @@ export async function POST(
       orderNumber: order.orderNumber,
       orderId: order._id,
       status: normalizedStatus,
-      previousStatus: order.status,
+      previousStatus: order.orderStatus,
       trackingNote,
     }).catch((err) => console.error("Notification failed silently:", err));
   }

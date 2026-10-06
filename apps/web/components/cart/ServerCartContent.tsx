@@ -39,7 +39,7 @@ interface UserOrder {
   orderNumber: string;
   totalPrice: number;
   currency: string;
-  status: string;
+  orderStatus: string;
   orderDate: string;
   customerName: string;
   email: string;
@@ -138,11 +138,11 @@ export function ServerCartContent({
                     <PriceFormatter amount={order.totalPrice} />
                     <Badge
                       variant={
-                        order.status === "delivered" ? "default" : "secondary"
+                        order.orderStatus === "delivered" ? "default" : "secondary"
                       }
                       className="ml-2"
                     >
-                      {order.status}
+                      {order.orderStatus}
                     </Badge>
                   </div>
                 </div>

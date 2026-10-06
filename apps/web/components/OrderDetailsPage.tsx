@@ -71,7 +71,7 @@ export interface OrderDetailsPageProps {
       state: string;
       zip: string;
     };
-    status: string;
+    orderStatus: string;
     paymentStatus: string;
     paymentMethod: string;
     orderDate: string;
@@ -277,8 +277,8 @@ const OrderDetailsPage: React.FC<OrderDetailsPageProps> = ({ order }) => {
   const canCancelOrder = () => {
     const cancellableStatuses = ["pending", "address_confirmed"];
     return (
-      cancellableStatuses.includes(currentOrder.status) &&
-      currentOrder.status !== "cancelled" &&
+      cancellableStatuses.includes(currentOrder.orderStatus) &&
+      currentOrder.orderStatus !== "cancelled" &&
       !currentOrder.cancellationRequested // Don't show cancel button if request already pending
     );
   };
@@ -305,7 +305,7 @@ const OrderDetailsPage: React.FC<OrderDetailsPageProps> = ({ order }) => {
               Download Invoice
             </Link>
           ) : currentOrder.paymentStatus === "paid" ||
-            currentOrder.status === "paid" ? (
+            currentOrder.orderStatus === "paid" ? (
             <Button
               onClick={handleGenerateInvoice}
               disabled={generatingInvoice}
@@ -405,7 +405,7 @@ const OrderDetailsPage: React.FC<OrderDetailsPageProps> = ({ order }) => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                {getStatusIcon(currentOrder.status)}
+                {getStatusIcon(currentOrder.orderStatus)}
                 Order Status
               </CardTitle>
             </CardHeader>
@@ -414,9 +414,9 @@ const OrderDetailsPage: React.FC<OrderDetailsPageProps> = ({ order }) => {
                 <div>
                   <p className="text-sm text-gray-600">Order Status</p>
                   <Badge
-                    className={`${getStatusColor(currentOrder.status)} mt-1`}
+                    className={`${getStatusColor(currentOrder.orderStatus)} mt-1`}
                   >
-                    {currentOrder.status}
+                    {currentOrder.orderStatus}
                   </Badge>
                 </div>
                 <div>

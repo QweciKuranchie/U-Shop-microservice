@@ -187,14 +187,14 @@ const SuccessContent = () => {
                         <div className="flex items-center gap-3">
                           <Badge
                             variant={
-                              order.status === "completed" ||
-                              order.status === "delivered"
+                              order.orderStatus === "completed" ||
+                              order.orderStatus === "delivered"
                                 ? "default"
                                 : "secondary"
                             }
                             className="capitalize"
                           >
-                            {order.status || "pending"}
+                            {order.orderStatus || "pending"}
                           </Badge>
                           <Button asChild size="sm" variant="outline">
                             <Link href={`/user/orders/${order._id}`}>

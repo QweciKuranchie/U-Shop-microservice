@@ -137,18 +137,18 @@ const ResponsiveOrdersComponent = ({
 
   const isOrderPayable = (order: MY_ORDERS_QUERYResult[number]) => {
     const isPaid = order.paymentStatus === PAYMENT_STATUSES.PAID;
-    const isCancelled = order.status === ORDER_STATUSES.CANCELLED;
+    const isCancelled = order.orderStatus === ORDER_STATUSES.CANCELLED;
     return !isPaid && !isCancelled;
   };
 
   const getStatusBadgeVariant = (order: MY_ORDERS_QUERYResult[number]) => {
     if (
       order.paymentStatus === "paid" ||
-      order.status === "completed" ||
-      order.status === "delivered"
+      order.orderStatus === "completed" ||
+      order.orderStatus === "delivered"
     ) {
       return "bg-green-100 text-green-800";
-    } else if (order.status === "cancelled") {
+    } else if (order.orderStatus === "cancelled") {
       return "bg-red-100 text-red-800";
     } else {
       return "bg-yellow-100 text-yellow-800";
@@ -217,8 +217,8 @@ const ResponsiveOrdersComponent = ({
               order
             )} text-xs font-medium px-2 py-1 rounded-full shrink-0 ml-2`}
           >
-            {order?.status
-              ? order.status.charAt(0).toUpperCase() + order.status.slice(1)
+            {order?.orderStatus
+              ? order.orderStatus.charAt(0).toUpperCase() + order.orderStatus.slice(1)
               : "Pending"}
           </Badge>
         </div>
@@ -382,9 +382,9 @@ const ResponsiveOrdersComponent = ({
                         order
                       )} text-xs font-medium px-2 py-1 rounded-full`}
                     >
-                      {order?.status
-                        ? order.status.charAt(0).toUpperCase() +
-                          order.status.slice(1)
+                      {order?.orderStatus
+                        ? order.orderStatus.charAt(0).toUpperCase() +
+                          order.orderStatus.slice(1)
                         : "Pending"}
                     </Badge>
                   </td>

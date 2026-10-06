@@ -78,7 +78,7 @@ const OrdersComponent = ({ orders }: { orders: MY_ORDERS_QUERYResult }) => {
   const isOrderPayable = (order: MY_ORDERS_QUERYResult[number]) => {
     // Order is payable if payment is not completed and order is not cancelled
     const isPaid = order.paymentStatus === PAYMENT_STATUSES.PAID;
-    const isCancelled = order.status === ORDER_STATUSES.CANCELLED;
+    const isCancelled = order.orderStatus === ORDER_STATUSES.CANCELLED;
     return !isPaid && !isCancelled;
   };
 
@@ -118,17 +118,17 @@ const OrdersComponent = ({ orders }: { orders: MY_ORDERS_QUERYResult }) => {
               />
             </TableCell>
             <TableCell>
-              {order?.status && (
+              {order?.orderStatus && (
                 <span
                   className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
-                    order.status === "paid"
+                    order.orderStatus === "paid"
                       ? "bg-green-100 text-green-800"
-                      : order.status === "pending"
+                      : order.orderStatus === "pending"
                       ? "bg-yellow-100 text-yellow-800"
                       : "bg-gray-100 text-gray-800"
                   }`}
                 >
-                  {order.status}
+                  {order.orderStatus}
                 </span>
               )}
             </TableCell>

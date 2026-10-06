@@ -11,7 +11,6 @@ import { ActionItemType, ChartDistributionType, OrderChartType } from "@/types/a
 interface SanityOrderRecord {
   totalPrice?: number;
   amount?: number;
-  status?: string;
   orderStatus?: string;
   paymentStatus?: string;
   orderDate?: string;
@@ -38,7 +37,7 @@ async function getOrderChartData(): Promise<OrderChartType[]> {
       `*[_type == "order"] {
         totalPrice,
         amount,
-        status,
+        orderStatus,
         orderStatus,
         paymentStatus,
         orderDate,
@@ -86,7 +85,7 @@ async function getOrderChartData(): Promise<OrderChartType[]> {
             ? ord.amount / 100
             : 0;
         chartDataMap[monthName].total += amt;
-        const st = (ord.orderStatus || ord.status || ord.paymentStatus || "").toLowerCase();
+        const st = (ord.orderStatus || ord.paymentStatus || "").toLowerCase();
         if (
           st === "delivered" ||
           st === "paid" ||
@@ -114,10 +113,10 @@ async function getOrderChartData(): Promise<OrderChartType[]> {
 
 async function getOrderStatusDistribution(): Promise<ChartDistributionType[]> {
   try {
-    const orders: Array<{ orderStatus?: string; status?: string }> = await client.fetch(
+    const orders: Array<{ orderStatus?: string }> = await client.fetch(
       `*[_type == "order"] {
         orderStatus,
-        status
+        orderStatus
       }`
     );
 
@@ -130,7 +129,7 @@ async function getOrderStatusDistribution(): Promise<ChartDistributionType[]> {
     };
 
     orders.forEach((ord) => {
-      const st = (ord.orderStatus || ord.status || "pending").toLowerCase();
+      const st = (ord.orderStatus || "pending").toLowerCase();
       if (st.includes("deliver")) counts.delivered++;
       else if (st.includes("process")) counts.processing++;
       else if (st.includes("ship")) counts.shipped++;
@@ -166,7 +165,7 @@ async function getStoreActionItems(): Promise<ActionItemType[]> {
       SanityLowStockProductRecord[]
     ] = await Promise.all([
       client.fetch(
-        `*[_type == "order" && (orderStatus == "pending" || status == "pending")][0...3] {
+        `*[_type == "order" && orderStatus == "pending"][0...3] {
           _id,
           orderNumber,
           customerName,

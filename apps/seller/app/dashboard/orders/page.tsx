@@ -11,7 +11,7 @@ export default async function OrdersPage() {
       customerName,
       email,
       totalPrice,
-      status,
+      orderStatus,
       paymentStatus,
       orderDate
     }`
@@ -48,7 +48,7 @@ export default async function OrdersPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{order.status || "processing"}</Badge>
+                    <Badge variant="outline">{order.orderStatus || "processing"}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" asChild>

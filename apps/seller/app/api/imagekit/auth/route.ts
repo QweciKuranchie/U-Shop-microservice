@@ -4,7 +4,7 @@ import { checkRateLimit } from "@repo/utils/rate-limit";
 
 export async function GET(request: NextRequest) {
   try {
-    const rateLimitError = checkRateLimit(request, "imagekit-auth", {
+    const rateLimitError = await checkRateLimit(request, "imagekit-auth", {
       limit: 20,
       windowMs: 60 * 1000,
     });

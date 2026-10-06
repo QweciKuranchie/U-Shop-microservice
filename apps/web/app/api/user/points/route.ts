@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
         rewardPoints,
         loyaltyPoints,
         totalSpent,
-        "completedOrders": count(*[_type == "order" && user._ref == ^._id && status == "completed"])
+        "completedOrders": count(*[_type == "order" && user._ref == ^._id && orderStatus == "completed"])
       }`,
       { clerkUserId: userId }
     );
@@ -93,8 +93,8 @@ export async function GET() {
         loyaltyPoints,
         totalSpent,
         lastLogin,
-        "completedOrders": count(*[_type == "order" && user._ref == ^._id && status == "completed"]),
-        "pendingOrders": count(*[_type == "order" && user._ref == ^._id && status in ["pending", "processing"]]),
+        "completedOrders": count(*[_type == "order" && user._ref == ^._id && orderStatus == "completed"]),
+        "pendingOrders": count(*[_type == "order" && user._ref == ^._id && orderStatus in ["pending", "processing"]]),
         "totalOrders": count(*[_type == "order" && user._ref == ^._id])
       }`,
       { clerkUserId: userId }

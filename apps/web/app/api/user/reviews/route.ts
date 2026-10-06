@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user has purchased this product
     const hasPurchased = await writeClient.fetch(
-      `count(*[_type == "order" && user._ref == $userId && status == "delivered" && $productId in products[].product._ref]) > 0`,
+      `count(*[_type == "order" && user._ref == $userId && orderStatus == "delivered" && $productId in products[].product._ref]) > 0`,
       { userId: sanityUser._id, productId }
     );
 

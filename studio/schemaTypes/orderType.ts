@@ -166,10 +166,21 @@ export const orderType = defineType({
       type: "string",
       options: {
         list: [
+          // Keep in sync with ORDER_STATUS_OPTIONS in packages/utils/src/orderStatus.ts
           { title: "Pending", value: "pending" },
+          { title: "Paid", value: "paid" },
+          { title: "Address confirmed", value: "address_confirmed" },
+          { title: "Order confirmed", value: "order_confirmed" },
+          { title: "Confirmed", value: "confirmed" },
           { title: "Processing", value: "processing" },
+          { title: "Packed", value: "packed" },
+          { title: "Ready for delivery", value: "ready_for_delivery" },
           { title: "Shipped", value: "shipped" },
+          { title: "Out for delivery", value: "out_for_delivery" },
+          { title: "Rescheduled", value: "rescheduled" },
+          { title: "Failed delivery", value: "failed_delivery" },
           { title: "Delivered", value: "delivered" },
+          { title: "Completed", value: "completed" },
           { title: "Cancelled", value: "cancelled" },
         ],
       },

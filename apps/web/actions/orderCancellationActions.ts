@@ -38,7 +38,7 @@ export async function approveCancellationRequest(
       `*[_type == "order" && _id == $orderId][0]{
         _id,
         orderNumber,
-        status,
+        orderStatus,
         paymentStatus,
         totalPrice,
         amountPaid,
@@ -60,7 +60,7 @@ export async function approveCancellationRequest(
       };
     }
 
-    if (order.status === "cancelled") {
+    if (order.orderStatus === "cancelled") {
       return { success: false, message: "Order is already cancelled" };
     }
 
@@ -95,7 +95,7 @@ export async function approveCancellationRequest(
     await backendClient
       .patch(orderId)
       .set({
-        status: "cancelled",
+        orderStatus: "cancelled",
         paymentStatus: walletRefunded ? "refunded" : "cancelled",
         cancelledAt: new Date().toISOString(),
         cancelledBy: adminUser.email,
@@ -172,7 +172,7 @@ export async function rejectCancellationRequest(
       `*[_type == "order" && _id == $orderId][0]{
         _id,
         orderNumber,
-        status,
+        orderStatus,
         cancellationRequested,
         clerkUserId
       }`,
@@ -197,7 +197,7 @@ export async function rejectCancellationRequest(
         cancellationRequested: false,
         cancellationRequestedAt: null,
         cancellationRequestReason: null,
-        status: "confirmed",
+        orderStatus: "confirmed",
         orderConfirmedBy: adminUser.email,
         orderConfirmedAt: new Date().toISOString(),
       })
@@ -210,7 +210,7 @@ export async function rejectCancellationRequest(
         orderNumber: order.orderNumber,
         orderId: order._id,
         status: "confirmed",
-        previousStatus: order.status,
+        previousStatus: order.orderStatus,
       });
     } catch (notificationError) {
       console.error(
@@ -266,7 +266,7 @@ export async function cancelOrder(
       `*[_type == "order" && _id == $orderId][0]{
         _id,
         orderNumber,
-        status,
+        orderStatus,
         paymentStatus,
         totalPrice,
         amountPaid,
@@ -280,11 +280,11 @@ export async function cancelOrder(
       return { success: false, message: "Order not found" };
     }
 
-    if (order.status === "cancelled") {
+    if (order.orderStatus === "cancelled") {
       return { success: false, message: "Order is already cancelled" };
     }
 
-    if (order.status === "delivered") {
+    if (order.orderStatus === "delivered") {
       return {
         success: false,
         message:
@@ -324,7 +324,7 @@ export async function cancelOrder(
     await backendClient
       .patch(orderId)
       .set({
-        status: "cancelled",
+        orderStatus: "cancelled",
         paymentStatus: "cancelled",
         cancelledAt: new Date().toISOString(),
         cancelledBy: adminUser.email,
@@ -388,7 +388,7 @@ export async function requestOrderCancellation(
       `*[_type == "order" && _id == $orderId && clerkUserId == $clerkUserId][0]{
         _id,
         orderNumber,
-        status,
+        orderStatus,
         paymentStatus,
         totalPrice,
         amountPaid,
@@ -403,7 +403,7 @@ export async function requestOrderCancellation(
     }
 
     // Check if order can be cancelled
-    if (order.status === "cancelled") {
+    if (order.orderStatus === "cancelled") {
       return { success: false, message: "Order is already cancelled" };
     }
 
@@ -414,7 +414,7 @@ export async function requestOrderCancellation(
       };
     }
 
-    if (order.status === "delivered") {
+    if (order.orderStatus === "delivered") {
       return {
         success: false,
         message:
@@ -422,7 +422,7 @@ export async function requestOrderCancellation(
       };
     }
 
-    if (order.status === "shipped" || order.status === "out_for_delivery") {
+    if (order.orderStatus === "shipped" || order.orderStatus === "out_for_delivery") {
       return {
         success: false,
         message:

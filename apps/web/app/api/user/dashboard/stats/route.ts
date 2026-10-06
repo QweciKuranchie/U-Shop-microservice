@@ -43,16 +43,16 @@ export async function GET() {
         recentActivity.push({
           id: `order-${order._id}`,
           title: `Order ${
-            order.status === "delivered"
+            order.orderStatus === "delivered"
               ? "Delivered"
-              : order.status === "shipped"
+              : order.orderStatus === "shipped"
               ? "Shipped"
               : "Placed"
           }`,
           description: `Order #${order.orderNumber} ${
-            order.status === "delivered"
+            order.orderStatus === "delivered"
               ? "has been delivered"
-              : order.status === "shipped"
+              : order.orderStatus === "shipped"
               ? "has been shipped"
               : "has been placed successfully"
           }`,

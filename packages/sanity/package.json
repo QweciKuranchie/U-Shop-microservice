@@ -43,7 +43,8 @@
     "lucide-react": "^1.23.0",
     "next-sanity": "^13.1.1",
     "sanity": "5",
-    "sanity-plugin-imagekit": "^1.0.1"
+    "sanity-plugin-imagekit": "^1.0.1",
+    "@repo/utils": "workspace:*"
   },
   "peerDependencies": {
     "@sanity/client": ">=7",
@@ -55,6 +56,11 @@
   "devDependencies": {
     "@repo/config": "workspace:*",
     "next": "16.3.6",
-    "typescript": "^5"
+    "typescript": "^5",
+    "tsx": "^4.23.0",
+    "@types/node": "^20"
+  },
+  "scripts": {
+    "backfill:order-status": "tsx scripts/backfill-order-status.mts"
   }
 }

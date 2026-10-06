@@ -22,7 +22,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const limited = checkRateLimitByKey(userId, "orders:pay-wallet", { limit: 10, windowMs: 60_000 });
+    const limited = await checkRateLimitByKey(userId, "orders:pay-wallet", { limit: 10, windowMs: 60_000 });
     if (limited) return limited;
 
     const { orderId } = await params;

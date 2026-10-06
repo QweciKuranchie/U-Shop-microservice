@@ -26,3 +26,52 @@ describe("consumeRateLimit", () => {
     assert.equal(consumeRateLimit("after-flood", opts, 0).allowed, true);
   });
 });
+
+import { evaluateRateLimit, setRemoteLimiterFactory, windowToDuration } from "./rateLimit";
+
+describe("windowToDuration", () => {
+  it("formats Upstash duration strings", () => {
+    assert.equal(windowToDuration(60_000), "60 s");
+    assert.equal(windowToDuration(1000), "1 s");
+    assert.equal(windowToDuration(1500), "1500 ms");
+    assert.equal(windowToDuration(0), "1 ms");
+  });
+});
+
+describe("evaluateRateLimit (remote backend + fallback)", () => {
+  const opts = { limit: 2, windowMs: 1000 };
+  beforeEach(() => { resetRateLimitState(); setRemoteLimiterFactory(() => null); });
+
+  it("uses in-memory when no remote backend is configured", async () => {
+    assert.equal((await evaluateRateLimit("u", "p", opts, 0)).allowed, true);
+    assert.equal((await evaluateRateLimit("u", "p", opts, 0)).allowed, true);
+    assert.equal((await evaluateRateLimit("u", "p", opts, 0)).allowed, false);
+  });
+
+  it("trusts the remote decision and maps Retry-After", async () => {
+    setRemoteLimiterFactory(() => ({
+      limit: async () => ({ success: false, limit: 2, remaining: 0, reset: 5000 }),
+    }));
+    const r = await evaluateRateLimit("u", "p", opts, 1000);
+    assert.equal(r.allowed, false);
+    assert.equal(r.retryAfterSeconds, 4);
+  });
+
+  it("falls back to in-memory when Redis throws (outage must not break checkout)", async () => {
+    setRemoteLimiterFactory(() => ({ limit: async () => { throw new Error("redis down"); } }));
+    const origError = console.error; console.error = () => {};
+    try {
+      assert.equal((await evaluateRateLimit("u", "p", opts, 0)).allowed, true);
+      assert.equal((await evaluateRateLimit("u", "p", opts, 0)).allowed, true);
+      assert.equal((await evaluateRateLimit("u", "p", opts, 0)).allowed, false); // still limited locally
+    } finally { console.error = origError; }
+  });
+
+  it("falls back when Redis hangs past the timeout", async () => {
+    setRemoteLimiterFactory(() => ({ limit: () => new Promise(() => {}) })); // never resolves
+    const origError = console.error; console.error = () => {};
+    try {
+      assert.equal((await evaluateRateLimit("u", "p", opts, 0)).allowed, true);
+    } finally { console.error = origError; }
+  });
+});

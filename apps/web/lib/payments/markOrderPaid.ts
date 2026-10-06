@@ -16,7 +16,6 @@ export interface OrderForPayment extends OrderForEmail {
   _id: string;
   _rev: string;
   paymentStatus?: string | null;
-  status?: string | null;
   orderStatus?: string | null;
   totalPrice?: number | null;
   currency?: string | null;
@@ -25,7 +24,7 @@ export interface OrderForPayment extends OrderForEmail {
 
 /** Projection shared by the webhook and the browser callback. */
 export const ORDER_FOR_PAYMENT_QUERY = `*[_type == "order" && _id == $orderId][0]{
-  _id, _rev, orderNumber, paymentStatus, status, orderStatus, orderDate,
+  _id, _rev, orderNumber, paymentStatus, orderStatus, orderDate,
   customerName, email, totalPrice, currency, subtotal, shipping, tax, clerkUserId,
   items[]{ quantity, price, product->{ name, price, images } },
   shippingAddress->{ name, address, city, state, zip },
@@ -78,9 +77,6 @@ export async function markOrderPaid(
         .set({
           paymentStatus: PAYMENT_STATUSES.PAID,
           orderStatus: ORDER_STATUSES.PROCESSING,
-          // `status` mirrors `orderStatus` (the wallet path already sets it);
-          // leaving it "pending" made paid card orders look unpaid to readers of `status`.
-          status: ORDER_STATUSES.PROCESSING,
           paystackReference: charge.reference,
           paystackTransactionId: String(charge.transactionId),
           amountPaid: charge.amountPesewas / 100,

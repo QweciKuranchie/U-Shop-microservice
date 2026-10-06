@@ -41,7 +41,7 @@ interface OrderTimelineProps {
     deliveredBy?: string;
     assignedDeliverymanName?: string;
     dispatchedAt?: string;
-    status: string;
+    orderStatus: string;
     cancelledAt?: string;
     cancelledBy?: string;
   };
@@ -54,7 +54,7 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({ order }) => {
     const events: TimelineEvent[] = [];
 
     // Check if order is cancelled
-    const isCancelled = order.status === "cancelled";
+    const isCancelled = order.orderStatus === "cancelled";
 
     // Determine current status for proper "current" highlighting
     const isAddressConfirmed = !!order.addressConfirmedAt;

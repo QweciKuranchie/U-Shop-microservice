@@ -6,7 +6,7 @@ import { verifyIsAdmin } from "@repo/auth";
 interface SanityOrderForChart {
   totalPrice?: number;
   amount?: number;
-  status?: string;
+  orderStatus?: string;
   orderDate?: string;
   _createdAt?: string;
 }
@@ -27,7 +27,7 @@ export async function GET() {
       `*[_type == "order"] {
         totalPrice,
         amount,
-        status,
+        orderStatus,
         orderDate,
         _createdAt
       }`
@@ -69,7 +69,7 @@ export async function GET() {
       if (chartDataMap[monthName]) {
         const amt = ord.totalPrice !== undefined ? ord.totalPrice : (ord.amount ? ord.amount / 100 : 0);
         chartDataMap[monthName].total += amt;
-        if (ord.status === "delivered" || ord.status === "paid" || ord.status === "success" || ord.status === "completed") {
+        if (ord.orderStatus === "delivered" || ord.orderStatus === "paid" || ord.orderStatus === "success" || ord.orderStatus === "completed") {
           chartDataMap[monthName].successful += amt;
         }
       }
