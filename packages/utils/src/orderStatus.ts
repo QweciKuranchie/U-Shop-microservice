@@ -107,12 +107,27 @@ export type BackfillPlan =
   | { action: "none" }
   | { action: "update"; orderStatus: string; unsetStatus: boolean; conflict: boolean; reason: StatusReconciliation["reason"] };
 
-/** What to do for one order document. Idempotent: a migrated doc yields `none`. */
-export function planOrderStatusBackfill(doc: BackfillDoc): BackfillPlan {
+/**
+ * What to do for one order document. Idempotent: a migrated doc yields `none`.
+ *
+ * `keepLegacy` is the PRE-DEPLOY phase of a zero-downtime rollout: it only brings
+ * `orderStatus` up to date and leaves `status` in place, so the code that is still
+ * running (which reads `status`) is unaffected. Documents whose `orderStatus` is
+ * already correct are skipped. The post-deploy run (without `keepLegacy`) then
+ * removes `status`.
+ */
+export function planOrderStatusBackfill(doc: BackfillDoc, options: { keepLegacy?: boolean } = {}): BackfillPlan {
   const hasLegacy = doc.status !== undefined && doc.status !== null;
   const hasCanonical = typeof doc.orderStatus === "string" && doc.orderStatus.trim() !== "";
   if (!hasLegacy && hasCanonical) return { action: "none" };
 
   const r = reconcileLegacyOrderStatus(doc);
+
+  if (options.keepLegacy) {
+    if (hasCanonical && norm(doc.orderStatus) === r.orderStatus && doc.orderStatus === r.orderStatus) {
+      return { action: "none" };
+    }
+    return { action: "update", orderStatus: r.orderStatus, unsetStatus: false, conflict: r.conflict, reason: r.reason };
+  }
   return { action: "update", orderStatus: r.orderStatus, unsetStatus: hasLegacy, conflict: r.conflict, reason: r.reason };
 }

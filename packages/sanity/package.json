@@ -61,6 +61,6 @@
     "@types/node": "^20"
   },
   "scripts": {
-    "backfill:order-status": "tsx scripts/backfill-order-status.mts"
+    "backfill:order-status": "tsx migrations/backfill-order-status.mts"
   }
 }

@@ -54,3 +54,24 @@ describe("planOrderStatusBackfill", () => {
     assert.deepEqual(p, { action: "update", orderStatus: "pending", unsetStatus: false, conflict: false, reason: "neither_defaulted_to_pending" });
   });
 });
+
+describe("planOrderStatusBackfill keepLegacy (pre-deploy phase)", () => {
+  const base = { _id: "o1", _rev: "r1" };
+
+  it("syncs orderStatus but never unsets the legacy field", () => {
+    const plan = planOrderStatusBackfill({ ...base, orderStatus: "pending", status: "delivered" }, { keepLegacy: true });
+    assert.deepEqual(plan, { action: "update", orderStatus: "delivered", unsetStatus: false, conflict: true, reason: "further_along_wins" });
+  });
+
+  it("skips documents whose orderStatus is already correct (no pointless writes)", () => {
+    assert.equal(planOrderStatusBackfill({ ...base, orderStatus: "shipped", status: "shipped" }, { keepLegacy: true }).action, "none");
+    assert.equal(planOrderStatusBackfill({ ...base, orderStatus: "delivered", status: "pending" }, { keepLegacy: true }).action, "none");
+  });
+
+  it("the post-deploy run after a keep-legacy run only has to unset status", () => {
+    const pre = planOrderStatusBackfill({ ...base, orderStatus: "pending", status: "cancelled" }, { keepLegacy: true });
+    assert.equal(pre.action === "update" && pre.orderStatus, "cancelled");
+    const post = planOrderStatusBackfill({ ...base, orderStatus: "cancelled", status: "cancelled" });
+    assert.deepEqual(post, { action: "update", orderStatus: "cancelled", unsetStatus: true, conflict: false, reason: "agree" });
+  });
+});
