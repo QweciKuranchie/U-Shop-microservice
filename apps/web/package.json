@@ -104,6 +104,7 @@
     "dotenv": "^17.4.2",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.2.10",
+    "groq-js": "^2.0.0",
     "postcss": "8.5.23",
     "sanity": "5",
     "shadcn": "^4.13.0",

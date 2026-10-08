@@ -34,17 +34,25 @@
     "./types": {
       "import": "./src/types.ts",
       "types": "./src/types.ts"
+    },
+    "./catalog": {
+      "import": "./src/catalogQuery.ts",
+      "types": "./src/catalogQuery.ts"
+    },
+    "./shop": {
+      "import": "./src/shopQuery.ts",
+      "types": "./src/shopQuery.ts"
     }
   },
   "dependencies": {
+    "@repo/utils": "workspace:*",
     "@sanity/client": "^7.23.0",
     "@sanity/icons": "^3.5.2",
     "@sanity/image-url": "2",
     "lucide-react": "^1.23.0",
     "next-sanity": "^13.1.1",
     "sanity": "5",
-    "sanity-plugin-imagekit": "^1.0.1",
-    "@repo/utils": "workspace:*"
+    "sanity-plugin-imagekit": "^1.0.1"
   },
   "peerDependencies": {
     "@sanity/client": ">=7",
@@ -55,12 +63,14 @@
   },
   "devDependencies": {
     "@repo/config": "workspace:*",
+    "@types/node": "^20",
+    "groq-js": "^2.0.0",
     "next": "16.3.6",
-    "typescript": "^5",
     "tsx": "^4.23.0",
-    "@types/node": "^20"
+    "typescript": "^5"
   },
   "scripts": {
-    "backfill:order-status": "tsx migrations/backfill-order-status.mts"
+    "backfill:order-status": "tsx migrations/backfill-order-status.mts",
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
   }
 }
