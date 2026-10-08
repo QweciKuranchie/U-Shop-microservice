@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { writeClient } from "@repo/sanity";
 import { ORDER_STATUSES, PAYMENT_STATUSES } from "@/lib/orderStatus";
+import { WALLET_USER_QUERY } from "./queries";
 
 /**
  * Wallet mutations. SERVER-ONLY and deliberately NOT in a "use server" file.
@@ -68,10 +69,7 @@ function makeTransaction(
 
 async function loadWalletUser(clerkUserId: string, refundOrderId?: string): Promise<WalletUser | null> {
   return writeClient.fetch<WalletUser | null>(
-    `*[_type == "user" && clerkUserId == $clerkUserId][0]{
-      _id, _rev, walletBalance,
-      "alreadyCredited": defined($refundOrderId) && count(walletTransactions[type == "credit_refund" && orderId == $refundOrderId]) > 0
-    }`,
+    WALLET_USER_QUERY,
     { clerkUserId, refundOrderId: refundOrderId ?? null }
   );
 }
