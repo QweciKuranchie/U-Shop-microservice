@@ -68,7 +68,7 @@ const UserDropdown = () => {
         </div>
       </PopoverTrigger>
 
-      <PopoverContent className="w-72 p-0" align="end" sideOffset={5}>
+      <PopoverContent className="w-72 p-0 bg-white dark:bg-zinc-950 border border-gray-100 dark:border-gray-800 shadow-2xl rounded-2xl overflow-hidden z-50" align="end" sideOffset={6}>
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             {user.imageUrl ? (
