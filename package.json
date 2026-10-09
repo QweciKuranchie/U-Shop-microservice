@@ -17,7 +17,7 @@
     "typegen": "pnpm --filter=@repo/sanity run typegen"
   },
   "devDependencies": {
-    "nx": "23.2.0",
+    "nx": "23.2.1",
     "@nx/next": "23.2.0",
     "@nx/eslint": "23.2.0",
     "typescript": "^5"
