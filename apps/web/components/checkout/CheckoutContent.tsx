@@ -401,402 +401,407 @@ export function CheckoutContent() {
 
   return (
     <div className="grid lg:grid-cols-3 gap-8">
-      {/* Order Items */}
+      {/* Left Column: Payment, Address, Items */}
       <div className="lg:col-span-2 space-y-6">
         {/* Payment Method */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-ushop-pink" />
-              Payment Method
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RadioGroup
-              value={selectedPaymentMethod}
-              onValueChange={(value) => {
-                setSelectedPaymentMethod(value as PaymentMethod);
-                if (value !== PAYMENT_METHODS.MOBILE_MONEY) {
-                  setMomoPhoneNumber("");
-                  setMomoPhoneError("");
-                }
-              }}
-              className="space-y-3"
-            >
-              {/* Credit/Debit Card */}
-              <div
-                className={`flex items-start space-x-3 p-3 border rounded-lg transition-colors ${
-                  selectedPaymentMethod === PAYMENT_METHODS.CARD
-                    ? "border-ushop-pink bg-ushop_light_pink/30"
-                    : "hover:border-gray-300"
-                }`}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-ushop-pink" />
+            <h2 className="text-lg font-bold text-gray-900">Payment Method</h2>
+          </div>
+          <Card>
+            <CardContent className="p-5 sm:p-6">
+              <RadioGroup
+                value={selectedPaymentMethod}
+                onValueChange={(value) => {
+                  setSelectedPaymentMethod(value as PaymentMethod);
+                  if (value !== PAYMENT_METHODS.MOBILE_MONEY) {
+                    setMomoPhoneNumber("");
+                    setMomoPhoneError("");
+                  }
+                }}
+                className="space-y-3"
               >
-                <RadioGroupItem
-                  value={PAYMENT_METHODS.CARD}
-                  id="card"
-                  className="mt-1 accent-ushop-purple"
-                />
-                <div className="flex-1">
-                  <Label htmlFor="card" className="cursor-pointer">
-                    <div className="flex items-center gap-2 font-medium">
-                      <CreditCard className="w-4 h-4 text-ushop-purple-dark" />
-                      Credit / Debit Card
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Pay securely with Visa or Mastercard via Paystack popup
-                    </p>
-                  </Label>
-                </div>
-              </div>
-
-              {selectedPaymentMethod === PAYMENT_METHODS.CARD && (
-                <div className="ml-0 mt-3 sm:ml-7 p-4 border border-dashed border-ushop-pink/40 rounded-lg bg-ushop_light_pink/10 space-y-1.5 animate-in slide-in-from-top-2 duration-300">
-                  <p className="text-sm font-medium text-ushop-purple-dark">
-                    Secure Card Payment
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Clicking &quot;Pay Now&quot; will securely launch the Paystack payment popup. No card details are ever saved on our servers.
-                  </p>
-                </div>
-              )}
-
-              {/* Mobile Money */}
-              <div
-                className={`flex items-start space-x-3 p-3 border rounded-lg transition-colors ${
-                  selectedPaymentMethod === PAYMENT_METHODS.MOBILE_MONEY
-                    ? "border-ushop-pink bg-ushop_light_pink/30"
-                    : "hover:border-gray-300"
-                }`}
-              >
-                <RadioGroupItem
-                  value={PAYMENT_METHODS.MOBILE_MONEY}
-                  id="mobile_money"
-                  className="mt-1 accent-ushop-purple"
-                />
-                <div className="flex-1">
-                  <Label htmlFor="mobile_money" className="cursor-pointer">
-                    <div className="flex items-center gap-2 font-medium">
-                      <Smartphone className="w-4 h-4 text-ushop-purple-dark" />
-                      Mobile Money
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Pay with MTN MoMo, Telecel Cash, or AT Money
-                    </p>
-                  </Label>
-                </div>
-              </div>
-
-              {/* Mobile Money Phone Input Section */}
-              {selectedPaymentMethod === PAYMENT_METHODS.MOBILE_MONEY && (
-                <div className="ml-0 mt-3 sm:ml-7 p-4 border border-dashed border-ushop-pink/40 rounded-lg bg-ushop_light_pink/10 space-y-3 animate-in slide-in-from-top-2 duration-300">
-                  <div className="space-y-1.5">
-                    <Label
-                      htmlFor="momoPhone"
-                      className="text-xs font-medium text-ushop-purple-dark"
-                    >
-                      Mobile Money Phone Number (Ghana)
+                {/* Credit/Debit Card */}
+                <div
+                  className={`flex items-start space-x-3 p-3.5 border rounded-xl transition-colors ${
+                    selectedPaymentMethod === PAYMENT_METHODS.CARD
+                      ? "border-ushop-pink bg-ushop_light_pink/30"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <RadioGroupItem
+                    value={PAYMENT_METHODS.CARD}
+                    id="card"
+                    className="mt-1 accent-ushop-purple"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="card" className="cursor-pointer">
+                      <div className="flex items-center gap-2 font-medium">
+                        <CreditCard className="w-4 h-4 text-ushop-purple-dark" />
+                        Credit / Debit Card
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Pay securely with Visa or Mastercard via Paystack popup
+                      </p>
                     </Label>
-                    <div className="relative">
-                      <Input
-                        id="momoPhone"
-                        placeholder="024XXXXXXX"
-                        value={momoPhoneNumber}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, "").slice(0, 10);
-                          setMomoPhoneNumber(val);
-                          if (momoPhoneError) setMomoPhoneError("");
-                        }}
-                        className={`h-11 text-base ${
-                          momoPhoneError
-                            ? "border-red-500 focus-visible:ring-red-500"
-                            : ""
-                        }`}
-                        maxLength={10}
-                      />
-                    </div>
-                    {momoPhoneError ? (
-                      <p className="text-xs text-red-500 font-medium">
-                        {momoPhoneError}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        Enter your 10-digit number (e.g. 024, 054, 055, 059, 027, 026, 028, 057, 025). You will approve payment on your device.
-                      </p>
-                    )}
                   </div>
                 </div>
-              )}
 
-              {/* Pay on Delivery */}
-              <div
-                className={`flex items-start space-x-3 p-3 border rounded-lg transition-colors ${
-                  selectedPaymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY
-                    ? "border-ushop-pink bg-ushop_light_pink/30"
-                    : "hover:border-gray-300"
-                }`}
-              >
-                <RadioGroupItem
-                  value={PAYMENT_METHODS.PAY_ON_DELIVERY}
-                  id="pay_on_delivery"
-                  className="mt-1 accent-ushop-purple"
-                />
-                <div className="flex-1">
-                  <Label htmlFor="pay_on_delivery" className="cursor-pointer">
-                    <div className="flex items-center gap-2 font-medium">
-                      <Banknote className="w-4 h-4 text-ushop-purple-dark" />
-                      Pay on Delivery
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Pay with cash or mobile money when your order is delivered
+                {selectedPaymentMethod === PAYMENT_METHODS.CARD && (
+                  <div className="ml-0 mt-3 sm:ml-7 p-4 border border-dashed border-ushop-pink/40 rounded-xl bg-ushop_light_pink/10 space-y-1.5 animate-in slide-in-from-top-2 duration-300">
+                    <p className="text-sm font-medium text-ushop-purple-dark">
+                      Secure Card Payment
                     </p>
-                  </Label>
-                </div>
-              </div>
+                    <p className="text-xs text-muted-foreground">
+                      Clicking &quot;Pay Now&quot; will securely launch the Paystack payment popup. No card details are ever saved on our servers.
+                    </p>
+                  </div>
+                )}
 
-              {/* Pay on Delivery Info */}
-              {selectedPaymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY && (
-                <div className="ml-0 mt-3 sm:ml-7 p-4 border border-dashed border-amber-300 rounded-lg bg-amber-50 animate-in slide-in-from-top-2 duration-300">
-                  <div className="flex items-start gap-2">
-                    <Package className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-amber-800">
-                        Pay when you receive your order
+                {/* Mobile Money */}
+                <div
+                  className={`flex items-start space-x-3 p-3.5 border rounded-xl transition-colors ${
+                    selectedPaymentMethod === PAYMENT_METHODS.MOBILE_MONEY
+                      ? "border-ushop-pink bg-ushop_light_pink/30"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <RadioGroupItem
+                    value={PAYMENT_METHODS.MOBILE_MONEY}
+                    id="mobile_money"
+                    className="mt-1 accent-ushop-purple"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="mobile_money" className="cursor-pointer">
+                      <div className="flex items-center gap-2 font-medium">
+                        <Smartphone className="w-4 h-4 text-ushop-purple-dark" />
+                        Mobile Money
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Pay with MTN MoMo, Telecel Cash, or AT Money
                       </p>
-                      <p className="text-xs text-amber-700">
-                        Have the exact amount ready. Our delivery agent will collect payment upon delivery.
-                      </p>
-                    </div>
+                    </Label>
                   </div>
                 </div>
-              )}
-            </RadioGroup>
-          </CardContent>
-        </Card>
-        {/* Shipping Address */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-ushop-pink" />
-              Shipping Address
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoadingAddresses ? (
-              <div className="space-y-3">
-                <div className="flex items-start gap-3 p-4 border rounded-lg">
-                  <div className="w-4 h-4 bg-gray-200 rounded-full animate-pulse mt-1"></div>
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded animate-pulse w-32"></div>
-                    <div className="h-3 bg-gray-200 rounded animate-pulse w-48"></div>
-                    <div className="h-3 bg-gray-200 rounded animate-pulse w-40"></div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-4 border rounded-lg">
-                  <div className="w-4 h-4 bg-gray-200 rounded-full animate-pulse mt-1"></div>
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded animate-pulse w-28"></div>
-                    <div className="h-3 bg-gray-200 rounded animate-pulse w-52"></div>
-                    <div className="h-3 bg-gray-200 rounded animate-pulse w-36"></div>
-                  </div>
-                </div>
-              </div>
-            ) : searchParams.get("address") ? (
-              // Show only selected address when coming from cart
-              selectedAddress && (
-                <div className="p-4 border rounded-lg bg-muted/50">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <p className="font-medium">{selectedAddress.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedAddress.address}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedAddress.city}, {selectedAddress.state}{" "}
-                        {selectedAddress.zip}
-                      </p>
-                      {selectedAddress.email && (
-                        <p className="text-sm text-muted-foreground">
-                          {selectedAddress.email}
+
+                {/* Mobile Money Phone Input Section */}
+                {selectedPaymentMethod === PAYMENT_METHODS.MOBILE_MONEY && (
+                  <div className="ml-0 mt-3 sm:ml-7 p-4 border border-dashed border-ushop-pink/40 rounded-xl bg-ushop_light_pink/10 space-y-3 animate-in slide-in-from-top-2 duration-300">
+                    <div className="space-y-1.5">
+                      <Label
+                        htmlFor="momoPhone"
+                        className="text-xs font-medium text-ushop-purple-dark"
+                      >
+                        Mobile Money Phone Number (Ghana)
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="momoPhone"
+                          placeholder="024XXXXXXX"
+                          value={momoPhoneNumber}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                            setMomoPhoneNumber(val);
+                            if (momoPhoneError) setMomoPhoneError("");
+                          }}
+                          className={`h-11 text-base ${
+                            momoPhoneError
+                              ? "border-red-500 focus-visible:ring-red-500"
+                              : ""
+                          }`}
+                          maxLength={10}
+                        />
+                      </div>
+                      {momoPhoneError ? (
+                        <p className="text-xs text-red-500 font-medium">
+                          {momoPhoneError}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Enter your 10-digit number (e.g. 024, 054, 055, 059, 027, 026, 028, 057, 025). You will approve payment on your device.
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-ushop-purple-dark font-semibold bg-ushop_light_pink border border-ushop-pink/20 px-2.5 py-1 rounded">
-                      ✓ Selected
+                  </div>
+                )}
+
+                {/* Pay on Delivery */}
+                <div
+                  className={`flex items-start space-x-3 p-3.5 border rounded-xl transition-colors ${
+                    selectedPaymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY
+                      ? "border-ushop-pink bg-ushop_light_pink/30"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <RadioGroupItem
+                    value={PAYMENT_METHODS.PAY_ON_DELIVERY}
+                    id="pay_on_delivery"
+                    className="mt-1 accent-ushop-purple"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="pay_on_delivery" className="cursor-pointer">
+                      <div className="flex items-center gap-2 font-medium">
+                        <Banknote className="w-4 h-4 text-ushop-purple-dark" />
+                        Pay on Delivery
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Pay with cash or mobile money when your order is delivered
+                      </p>
+                    </Label>
+                  </div>
+                </div>
+
+                {/* Pay on Delivery Info */}
+                {selectedPaymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY && (
+                  <div className="ml-0 mt-3 sm:ml-7 p-4 border border-dashed border-amber-300 rounded-xl bg-amber-50 animate-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-start gap-2">
+                      <Package className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-amber-800">
+                          Pay when you receive your order
+                        </p>
+                        <p className="text-xs text-amber-700">
+                          Have the exact amount ready. Our delivery agent will collect payment upon delivery.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </RadioGroup>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Shipping Address */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-ushop-pink" />
+            <h2 className="text-lg font-bold text-gray-900">Shipping Address</h2>
+          </div>
+          <Card>
+            <CardContent className="p-5 sm:p-6">
+              {isLoadingAddresses ? (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/40">
+                    <div className="w-4 h-4 bg-gray-200 rounded-full animate-pulse mt-1"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-32"></div>
+                      <div className="h-3 bg-gray-200 rounded animate-pulse w-48"></div>
+                      <div className="h-3 bg-gray-200 rounded animate-pulse w-40"></div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/40">
+                    <div className="w-4 h-4 bg-gray-200 rounded-full animate-pulse mt-1"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-28"></div>
+                      <div className="h-3 bg-gray-200 rounded animate-pulse w-52"></div>
+                      <div className="h-3 bg-gray-200 rounded animate-pulse w-36"></div>
                     </div>
                   </div>
                 </div>
-              )
-            ) : (
-              <OrderAddressSelector
-                addresses={addresses}
-                selectedAddress={selectedAddress}
-                onAddressSelect={setSelectedAddress}
-                isLoading={isLoadingAddresses}
-              />
-            )}
-          </CardContent>
-        </Card>
+              ) : searchParams.get("address") ? (
+                // Show only selected address when coming from cart
+                selectedAddress && (
+                  <div className="p-4 rounded-xl bg-muted/40">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <p className="font-medium text-gray-900">{selectedAddress.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedAddress.address}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedAddress.city}, {selectedAddress.state}{" "}
+                          {selectedAddress.zip}
+                        </p>
+                        {selectedAddress.email && (
+                          <p className="text-sm text-muted-foreground">
+                            {selectedAddress.email}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-ushop-purple-dark font-semibold bg-ushop_light_pink border border-ushop-pink/20 px-2.5 py-1 rounded">
+                        ✓ Selected
+                      </div>
+                    </div>
+                  </div>
+                )
+              ) : (
+                <OrderAddressSelector
+                  addresses={addresses}
+                  selectedAddress={selectedAddress}
+                  onAddressSelect={setSelectedAddress}
+                  isLoading={isLoadingAddresses}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </section>
 
         {/* Order Items */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Order Items ({cart.length})</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {cart.map((item: CartItem) => (
-              <div
-                key={item.product._id}
-                className="flex gap-3 p-3 border rounded-lg"
-              >
-                <div className="w-16 h-16 shrink-0">
-                  <Image
-                    src={
-                      item.product.images?.[0]
-                        ? urlFor(item.product.images[0]).url()
-                        : "/placeholder.jpg"
-                    }
-                    alt={item.product.name || "Product"}
-                    width={64}
-                    height={64}
-                    className="w-full h-full object-cover rounded"
-                  />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium">{item.product.name}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Qty: {item.quantity}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium">
-                    <PriceFormatter
-                      amount={(item.product.price || 0) * item.quantity}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Package className="w-5 h-5 text-ushop-pink" />
+            <h2 className="text-lg font-bold text-gray-900">Order Items ({cart.length})</h2>
+          </div>
+          <Card>
+            <CardContent className="p-5 sm:p-6 space-y-3">
+              {cart.map((item: CartItem) => (
+                <div
+                  key={item.product._id}
+                  className="flex gap-3 p-3.5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="w-16 h-16 shrink-0">
+                    <Image
+                      src={
+                        item.product.images?.[0]
+                          ? urlFor(item.product.images[0]).url()
+                          : "/placeholder.jpg"
+                      }
+                      alt={item.product.name || "Product"}
+                      width={64}
+                      height={64}
+                      className="w-full h-full object-cover rounded-lg"
                     />
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    <PriceFormatter amount={item.product.price || 0} /> each
-                  </p>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm sm:text-base line-clamp-1">{item.product.name}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Qty: {item.quantity}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium text-sm sm:text-base">
+                      <PriceFormatter
+                        amount={(item.product.price || 0) * item.quantity}
+                      />
+                    </p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      <PriceFormatter amount={item.product.price || 0} /> each
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+              ))}
+            </CardContent>
+          </Card>
+        </section>
       </div>
 
-      {/* Order Summary */}
+      {/* Right Column: Order Summary & Actions */}
       <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Order Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between">
-              <span>Subtotal ({cart.length} {cart.length === 1 ? "item" : "items"})</span>
-              <PriceFormatter amount={finalSubtotal} />
-            </div>
-            {totalDiscount > 0 && (
-              <div className="flex justify-between text-green-600 text-sm font-medium">
-                <span>Product Savings</span>
-                <span>
-                  -<PriceFormatter amount={totalDiscount} />
-                </span>
+        {/* Order Summary */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-gray-900">Order Summary</h2>
+          <Card>
+            <CardContent className="p-5 sm:p-6 space-y-3">
+              <div className="flex justify-between">
+                <span>Subtotal ({cart.length} {cart.length === 1 ? "item" : "items"})</span>
+                <PriceFormatter amount={finalSubtotal} />
               </div>
-            )}
-            {businessDiscount > 0 && (
-              <div className="flex justify-between text-blue-600 text-sm font-medium">
-                <span>Business Account Discount (2%)</span>
-                <span>
-                  -<PriceFormatter amount={businessDiscount} />
-                </span>
-              </div>
-            )}
-            {promoDiscountAmount > 0 && (
-              <div className="flex justify-between text-emerald-600 text-sm font-medium">
-                <span>Promo Discount ({appliedDiscount?.code})</span>
-                <span>
-                  -<PriceFormatter amount={promoDiscountAmount} />
-                </span>
-              </div>
-            )}
-            <div className="flex justify-between">
-              <span>Shipping</span>
-              {shipping === 0 ? (
-                <span className="text-green-600 font-medium">Free</span>
-              ) : (
-                <PriceFormatter amount={shipping} />
+              {totalDiscount > 0 && (
+                <div className="flex justify-between text-green-600 text-sm font-medium">
+                  <span>Product Savings</span>
+                  <span>
+                    -<PriceFormatter amount={totalDiscount} />
+                  </span>
+                </div>
               )}
-            </div>
-            <Separator />
-            <div className="flex justify-between text-lg font-bold">
-              <span>Total</span>
-              <PriceFormatter amount={total} />
-            </div>
-          </CardContent>
-        </Card>
+              {businessDiscount > 0 && (
+                <div className="flex justify-between text-blue-600 text-sm font-medium">
+                  <span>Business Account Discount (2%)</span>
+                  <span>
+                    -<PriceFormatter amount={businessDiscount} />
+                  </span>
+                </div>
+              )}
+              {promoDiscountAmount > 0 && (
+                <div className="flex justify-between text-emerald-600 text-sm font-medium">
+                  <span>Promo Discount ({appliedDiscount?.code})</span>
+                  <span>
+                    -<PriceFormatter amount={promoDiscountAmount} />
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span>Shipping</span>
+                {shipping === 0 ? (
+                  <span className="text-green-600 font-medium">Free</span>
+                ) : (
+                  <PriceFormatter amount={shipping} />
+                )}
+              </div>
+              <Separator />
+              <div className="flex justify-between text-lg font-bold">
+                <span>Total</span>
+                <PriceFormatter amount={total} />
+              </div>
+            </CardContent>
+          </Card>
+        </section>
 
         {/* Discount Code */}
-        <Card>
-          <CardContent className="pt-5 pb-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Tag className="w-4 h-4 text-ushop-pink" />
-                Discount Code
-              </div>
-
-              {appliedDiscount ? (
-                <div className="flex items-center justify-between p-3 border border-green-200 bg-green-50 rounded-lg animate-in fade-in-0 duration-300">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                      <Check className="w-3.5 h-3.5 text-green-600" />
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Tag className="w-4 h-4 text-ushop-pink" />
+            <h3 className="text-sm font-semibold text-gray-900">Discount Code</h3>
+          </div>
+          <Card>
+            <CardContent className="p-5">
+              <div className="space-y-3">
+                {appliedDiscount ? (
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-xl animate-in fade-in-0 duration-300">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                        <Check className="w-3.5 h-3.5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-green-800">{appliedDiscount.code}</p>
+                        <p className="text-xs text-green-600">
+                          {appliedDiscount.type === "percentage"
+                            ? `${appliedDiscount.amount}% off`
+                            : `GH₵${appliedDiscount.amount.toFixed(2)} off`}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-green-800">{appliedDiscount.code}</p>
-                      <p className="text-xs text-green-600">
-                        {appliedDiscount.type === "percentage"
-                          ? `${appliedDiscount.amount}% off`
-                          : `GH₵${appliedDiscount.amount.toFixed(2)} off`}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAppliedDiscount(null);
-                      setDiscountCode("");
-                      setDiscountError("");
-                    }}
-                    className="p-1 rounded-full hover:bg-green-100 transition-colors cursor-pointer"
-                  >
-                    <X className="w-4 h-4 text-green-700" />
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Enter discount code"
-                      value={discountCode}
-                      onChange={(e) => {
-                        setDiscountCode(e.target.value.toUpperCase());
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAppliedDiscount(null);
+                        setDiscountCode("");
                         setDiscountError("");
                       }}
-                      className="h-10 flex-1 uppercase"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={async () => {
-                        if (!discountCode.trim()) {
-                          setDiscountError("Please enter a code");
-                          return;
-                        }
-                        setIsApplyingCode(true);
-                        setDiscountError("");
-                        const promo = resolvePromoCode(discountCode);
-                        if (promo) {
-                          setAppliedDiscount({ code: promo.code, amount: promo.amount, type: promo.type });
-                          toast.success("Discount applied!", {
-                            description:
+                      className="p-1 rounded-full hover:bg-green-100 transition-colors cursor-pointer"
+                    >
+                      <X className="w-4 h-4 text-green-700" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter discount code"
+                        value={discountCode}
+                        onChange={(e) => {
+                          setDiscountCode(e.target.value.toUpperCase());
+                          setDiscountError("");
+                        }}
+                        className="h-10 flex-1 uppercase"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={async () => {
+                          if (!discountCode.trim()) {
+                            setDiscountError("Please enter a code");
+                            return;
+                          }
+                          setIsApplyingCode(true);
+                          setDiscountError("");
+                          const promo = resolvePromoCode(discountCode);
+                          if (promo) {
+                            setAppliedDiscount({ code: promo.code, amount: promo.amount, type: promo.type });
+                            toast.success("Discount applied!", {
+                              description:
                               promo.type === "percentage"
                                 ? `${promo.amount}% off your order`
                                 : `GH₵${promo.amount.toFixed(2)} off your order`,
@@ -824,6 +829,7 @@ export function CheckoutContent() {
             </div>
           </CardContent>
         </Card>
+      </section>
 
         <div className="space-y-3">
           <Button

@@ -62,166 +62,173 @@ export function OrderCheckoutContent({ order }: OrderCheckoutContentProps) {
       {/* Order Details */}
       <div className="lg:col-span-2 space-y-6">
         {/* Order Info */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Package className="w-5 h-5 text-ushop-pink" />
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-ushop-pink" />
+              <h2 className="text-lg font-bold text-gray-900">
                 Order #{order.orderNumber?.slice(-8)}
-              </CardTitle>
-              <Badge variant="outline" className="capitalize bg-ushop_light_pink text-ushop-purple-dark border-ushop-pink/20">
-                {order.orderStatus}
-              </Badge>
+              </h2>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground">Customer</p>
-                <p className="font-medium">{order.customerName}</p>
-                <p className="text-muted-foreground">{order.email}</p>
+            <Badge variant="outline" className="capitalize bg-ushop_light_pink text-ushop-purple-dark border-ushop-pink/20">
+              {order.orderStatus}
+            </Badge>
+          </div>
+          <Card>
+            <CardContent className="p-5 sm:p-6">
+              <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Customer</p>
+                  <p className="font-medium">{order.customerName}</p>
+                  <p className="text-muted-foreground">{order.email}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Order Date</p>
+                  <p className="font-medium">
+                    {order.orderDate
+                      ? new Date(order.orderDate).toLocaleDateString()
+                      : order._createdAt
+                      ? new Date(order._createdAt).toLocaleDateString()
+                      : "N/A"}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-muted-foreground">Order Date</p>
-                <p className="font-medium">
-                  {order.orderDate
-                    ? new Date(order.orderDate).toLocaleDateString()
-                    : order._createdAt
-                    ? new Date(order._createdAt).toLocaleDateString()
-                    : "N/A"}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </section>
 
         {/* Shipping Address */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-ushop-pink" />
-              Shipping Address
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              <p className="font-medium">{order.address?.name}</p>
-              <p className="text-muted-foreground">{order.address?.address}</p>
-              <p className="text-muted-foreground">
-                {order.address?.city}, {order.address?.state} {order.address?.zip}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-ushop-pink" />
+            <h2 className="text-lg font-bold text-gray-900">Shipping Address</h2>
+          </div>
+          <Card>
+            <CardContent className="p-5 sm:p-6">
+              <div className="space-y-1">
+                <p className="font-medium">{order.address?.name}</p>
+                <p className="text-muted-foreground">{order.address?.address}</p>
+                <p className="text-muted-foreground">
+                  {order.address?.city}, {order.address?.state} {order.address?.zip}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
 
         {/* Payment Method */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-ushop-pink" />
-              Payment Method
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RadioGroup
-              value={selectedPaymentMethod}
-              onValueChange={(value) =>
-                setSelectedPaymentMethod(value as PaymentMethod)
-              }
-              className="space-y-3"
-            >
-              <div className={`flex items-start space-x-3 p-3 border rounded-lg transition-colors ${selectedPaymentMethod === PAYMENT_METHODS.CARD ? "border-ushop-pink bg-ushop_light_pink/30" : ""}`}>
-                <RadioGroupItem
-                  value={PAYMENT_METHODS.CARD}
-                  id="card"
-                  className="mt-1 accent-ushop-purple"
-                />
-                <div className="flex-1">
-                  <Label htmlFor="card" className="cursor-pointer">
-                    <div className="flex items-center gap-2 font-medium">
-                      <CreditCard className="w-4 h-4 text-ushop-purple-dark" />
-                      Credit/Debit Card
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Pay securely with your credit or debit card via Paystack
-                    </p>
-                  </Label>
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-ushop-pink" />
+            <h2 className="text-lg font-bold text-gray-900">Payment Method</h2>
+          </div>
+          <Card>
+            <CardContent className="p-5 sm:p-6">
+              <RadioGroup
+                value={selectedPaymentMethod}
+                onValueChange={(value) =>
+                  setSelectedPaymentMethod(value as PaymentMethod)
+                }
+                className="space-y-3"
+              >
+                <div className={`flex items-start space-x-3 p-3.5 border rounded-xl transition-colors ${selectedPaymentMethod === PAYMENT_METHODS.CARD ? "border-ushop-pink bg-ushop_light_pink/30" : "border-gray-200 hover:border-gray-300"}`}>
+                  <RadioGroupItem
+                    value={PAYMENT_METHODS.CARD}
+                    id="card"
+                    className="mt-1 accent-ushop-purple"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="card" className="cursor-pointer">
+                      <div className="flex items-center gap-2 font-medium">
+                        <CreditCard className="w-4 h-4 text-ushop-purple-dark" />
+                        Credit/Debit Card
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Pay securely with your credit or debit card via Paystack
+                      </p>
+                    </Label>
+                  </div>
                 </div>
-              </div>
-            </RadioGroup>
-          </CardContent>
-        </Card>
+              </RadioGroup>
+            </CardContent>
+          </Card>
+        </section>
 
         {/* Order Items */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Order Items ({order.products?.length ?? 0})</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {(order.products ?? []).map((item: any, index: number) => (
-              <div key={index} className="flex gap-3 p-3 border rounded-lg">
-                <div className="w-16 h-16 flex-shrink-0">
-                  <Image
-                    src={
-                      item.product?.images?.[0]
-                        ? urlFor(item.product.images[0]).url()
-                        : "/placeholder.jpg"
-                    }
-                    alt={item.product?.name || "Product"}
-                    width={64}
-                    height={64}
-                    className="w-full h-full object-cover rounded"
-                  />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium">{item.product?.name}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Qty: {item.quantity}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium">
-                    <PriceFormatter
-                      amount={(item.product?.price ?? 0) * (item.quantity ?? 0)}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Package className="w-5 h-5 text-ushop-pink" />
+            <h2 className="text-lg font-bold text-gray-900">
+              Order Items ({order.products?.length ?? 0})
+            </h2>
+          </div>
+          <Card>
+            <CardContent className="p-5 sm:p-6 space-y-3">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {(order.products ?? []).map((item: any, index: number) => (
+                <div key={index} className="flex gap-3 p-3.5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <div className="w-16 h-16 flex-shrink-0">
+                    <Image
+                      src={
+                        item.product?.images?.[0]
+                          ? urlFor(item.product.images[0]).url()
+                          : "/placeholder.jpg"
+                      }
+                      alt={item.product?.name || "Product"}
+                      width={64}
+                      height={64}
+                      className="w-full h-full object-cover rounded-lg"
                     />
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    <PriceFormatter amount={item.product?.price} /> each
-                  </p>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm sm:text-base line-clamp-1">{item.product?.name}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Qty: {item.quantity}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium text-sm sm:text-base">
+                      <PriceFormatter
+                        amount={(item.product?.price ?? 0) * (item.quantity ?? 0)}
+                      />
+                    </p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      <PriceFormatter amount={item.product?.price} /> each
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+              ))}
+            </CardContent>
+          </Card>
+        </section>
       </div>
 
       {/* Order Summary & Actions */}
       <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Order Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between">
-              <span>Subtotal ({order.products?.length ?? 0} items)</span>
-              <PriceFormatter amount={order.subtotal} />
-            </div>
-            <div className="flex justify-between">
-              <span>Shipping</span>
-              {order.shipping === 0 ? (
-                <span className="text-green-600 font-medium">Free</span>
-              ) : (
-                <PriceFormatter amount={order.shipping} />
-              )}
-            </div>
-            <Separator />
-            <div className="flex justify-between text-lg font-bold">
-              <span>Total</span>
-              <PriceFormatter amount={order.totalPrice} />
-            </div>
-          </CardContent>
-        </Card>
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-gray-900">Order Summary</h2>
+          <Card>
+            <CardContent className="p-5 sm:p-6 space-y-3">
+              <div className="flex justify-between">
+                <span>Subtotal ({order.products?.length ?? 0} items)</span>
+                <PriceFormatter amount={order.subtotal} />
+              </div>
+              <div className="flex justify-between">
+                <span>Shipping</span>
+                {order.shipping === 0 ? (
+                  <span className="text-green-600 font-medium">Free</span>
+                ) : (
+                  <PriceFormatter amount={order.shipping} />
+                )}
+              </div>
+              <Separator />
+              <div className="flex justify-between text-lg font-bold">
+                <span>Total</span>
+                <PriceFormatter amount={order.totalPrice} />
+              </div>
+            </CardContent>
+          </Card>
+        </section>
 
         <Button
           onClick={handlePayNow}
