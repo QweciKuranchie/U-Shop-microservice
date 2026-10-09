@@ -20,13 +20,17 @@ export function CartItemControls({ product }: CartItemControlsProps) {
   };
 
   return (
-    <div className="flex items-center gap-4">
-      <QuantityButtons product={product} />
+    <div className="flex items-center gap-3">
+      <QuantityButtons
+        product={product}
+        className="bg-gray-100/80 rounded-lg px-1.5 py-0.5 pb-0.5 gap-2"
+      />
       <Button
         variant="ghost"
-        size="sm"
+        size="icon"
         onClick={handleRemove}
-        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+        title="Remove item"
       >
         <Trash2 className="w-4 h-4" />
       </Button>

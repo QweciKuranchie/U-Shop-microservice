@@ -120,13 +120,13 @@ export function ServerCartContent({
 
         {/* Show recent orders if available */}
         {userOrders.length > 0 && (
-          <div className="border rounded-lg p-6">
+          <div className="bg-white rounded-2xl p-6 shadow-sm">
             <h2 className="text-xl font-bold mb-4">Recent Orders</h2>
             <div className="space-y-3">
               {userOrders.slice(0, 3).map((order) => (
                 <div
                   key={order._id}
-                  className="flex justify-between items-center p-3 border rounded"
+                  className="flex justify-between items-center p-3 rounded-xl bg-muted/40"
                 >
                   <div>
                     <p className="font-medium">#{order.orderNumber}</p>
@@ -150,7 +150,7 @@ export function ServerCartContent({
             </div>
             <div className="mt-4">
               <Link href="/user/orders">
-                <Button variant="outline" className="w-full border-ushop-pink/40 text-ushop-purple hover:bg-ushop-pink hover:text-white font-semibold transition-colors">
+                <Button variant="outline" className="w-full h-10 rounded-xl border-ushop-pink/40 text-ushop-purple hover:bg-ushop-pink hover:text-white font-semibold transition-colors">
                   View All Orders
                 </Button>
               </Link>
@@ -166,7 +166,7 @@ export function ServerCartContent({
       {/* Cart Items */}
       <div className="lg:col-span-2 space-y-4">
         {cart.map((item) => (
-          <div key={item.product._id} className="border rounded-lg p-4">
+          <div key={item.product._id} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
             <div className="flex gap-3 sm:gap-4">
               {/* Product Image */}
               <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0">
@@ -255,17 +255,20 @@ export function ServerCartContent({
           </div>
         ))}
 
-        {/* Continue Shopping */}
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          <Link href="/shop">
-            <Button variant="outline" className="w-full border-ushop-pink/40 text-ushop-purple hover:bg-ushop-pink hover:text-white font-semibold transition-colors">
+        {/* Continue Shopping & Clear Cart Buttons */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+          <Link href="/shop" className="inline-flex">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto h-10 px-5 rounded-xl border-ushop-pink/40 text-ushop-purple hover:bg-ushop-pink hover:text-white font-semibold transition-colors"
+            >
               Continue Shopping
             </Button>
           </Link>
           <Button
             variant="outline"
             onClick={handleResetCart}
-            className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 font-semibold"
+            className="w-full sm:w-auto h-10 px-4 rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 font-medium transition-colors"
           >
             <Trash2 className="w-4 h-4 mr-2" />
             Clear Cart
@@ -285,23 +288,25 @@ export function ServerCartContent({
         />
 
         {/* Order Summary (Large Screens) */}
-        <div className="border rounded-lg p-6 hidden lg:block">
-          <h2 className="text-xl font-bold mb-4">Order Summary</h2>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span>Subtotal ({cart.length} {cart.length === 1 ? "item" : "items"})</span>
-              <PriceFormatter amount={finalTotal} />
+        <div className="space-y-3 hidden lg:block">
+          <h2 className="text-lg font-bold text-gray-900">Order Summary</h2>
+          <div className="bg-white rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span>Subtotal ({cart.length} {cart.length === 1 ? "item" : "items"})</span>
+                <PriceFormatter amount={finalTotal} />
+              </div>
+              <Separator />
+              <div className="flex justify-between text-lg font-bold">
+                <span>Total</span>
+                <PriceFormatter amount={finalTotal} />
+              </div>
             </div>
-            <Separator />
-            <div className="flex justify-between text-lg font-bold">
-              <span>Total</span>
-              <PriceFormatter amount={finalTotal} />
-            </div>
-          </div>
 
-          {/* Checkout */}
-          <div className="mt-6">
-            <CheckoutButton cart={cart} selectedAddress={selectedAddress} />
+            {/* Checkout */}
+            <div className="pt-2">
+              <CheckoutButton cart={cart} selectedAddress={selectedAddress} />
+            </div>
           </div>
         </div>
       </div>

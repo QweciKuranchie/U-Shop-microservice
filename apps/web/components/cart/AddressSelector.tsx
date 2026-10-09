@@ -67,119 +67,123 @@ export function AddressSelector({
 
   if (addresses.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <div className="space-y-3">
+        <div>
+          <div className="flex items-center gap-2">
             <MapPin className="w-5 h-5 text-ushop-pink" />
-            Shipping Address
-          </CardTitle>
-          <CardDescription>Add a shipping address to continue</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <MapPin className="w-12 h-12 mx-auto mb-4 text-ushop-pink opacity-60" />
-            <p className="text-muted-foreground mb-4">No saved addresses yet</p>
-            <Button onClick={() => setIsSidebarOpen(true)} className="w-full bg-ushop-purple-dark hover:bg-ushop-purple text-white font-semibold shadow-sm">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Your First Address
-            </Button>
+            <h2 className="text-lg font-bold text-gray-900">Shipping Address</h2>
           </div>
+          <p className="text-sm text-muted-foreground mt-0.5">Add a shipping address to continue</p>
+        </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center py-6">
+              <MapPin className="w-12 h-12 mx-auto mb-4 text-ushop-pink opacity-60" />
+              <p className="text-muted-foreground mb-4">No saved addresses yet</p>
+              <Button onClick={() => setIsSidebarOpen(true)} className="w-full h-10 rounded-xl bg-ushop-purple-dark hover:bg-ushop-purple text-white font-semibold shadow-sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Your First Address
+              </Button>
+            </div>
+
+            <AddAddressSidebar
+              userEmail={userEmail}
+              isOpen={isSidebarOpen}
+              onClose={() => setIsSidebarOpen(false)}
+              onAddressAdded={handleAddressAdded}
+              isFirstAddress={true}
+            />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <div className="flex items-center gap-2">
+          <MapPin className="w-5 h-5 text-ushop-pink" />
+          <h2 className="text-lg font-bold text-gray-900">Shipping Address</h2>
+        </div>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Select a shipping address for your order
+        </p>
+      </div>
+      <Card>
+        <CardContent className="p-5 sm:p-6 space-y-4">
+          <RadioGroup
+            value={selectedAddress?._id || ""}
+            onValueChange={(value) => {
+              const address = addresses.find((addr) => addr._id === value);
+              if (address) onAddressSelect(address);
+            }}
+          >
+            {visibleAddresses.map((address) => (
+              <div key={address._id} className="flex items-start space-x-2">
+                <RadioGroupItem
+                  value={address._id}
+                  id={address._id}
+                  className="mt-1 accent-ushop-purple"
+                />
+                <Label htmlFor={address._id} className="flex-1 cursor-pointer">
+                  <div className="space-y-1">
+                    <div className="font-medium flex items-center gap-2">
+                      {address.name}
+                      {address.default && (
+                        <span className="text-xs bg-ushop_light_pink text-ushop-purple-dark border border-ushop-pink/20 font-semibold px-2 py-0.5 rounded">
+                          Default
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {address.address}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {address.city}, {address.state} {address.zip}
+                    </div>
+                  </div>
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
+
+          {hasMoreAddresses && (
+            <Button
+              variant="outline"
+              className="w-full h-10 rounded-xl border-dashed border-ushop-pink/40 text-ushop-purple hover:bg-ushop-pink hover:text-white font-semibold transition-colors"
+              onClick={() => setIsAllAddressesSidebarOpen(true)}
+            >
+              <List className="w-4 h-4 mr-2" />
+              Show All {addresses.length} Addresses
+            </Button>
+          )}
+
+          <Button
+            variant="outline"
+            className="w-full h-10 rounded-xl border-ushop-pink/40 text-ushop-purple hover:bg-ushop-pink hover:text-white font-semibold transition-colors"
+            onClick={() => setIsSidebarOpen(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add New Address
+          </Button>
 
           <AddAddressSidebar
             userEmail={userEmail}
             isOpen={isSidebarOpen}
             onClose={() => setIsSidebarOpen(false)}
             onAddressAdded={handleAddressAdded}
-            isFirstAddress={true}
+          />
+
+          <AllAddressesSidebar
+            isOpen={isAllAddressesSidebarOpen}
+            onClose={() => setIsAllAddressesSidebarOpen(false)}
+            addresses={addresses}
+            selectedAddress={selectedAddress}
+            onAddressSelect={onAddressSelect}
           />
         </CardContent>
       </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MapPin className="w-5 h-5 text-ushop-pink" />
-          Shipping Address
-        </CardTitle>
-        <CardDescription>
-          Select a shipping address for your order
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <RadioGroup
-          value={selectedAddress?._id || ""}
-          onValueChange={(value) => {
-            const address = addresses.find((addr) => addr._id === value);
-            if (address) onAddressSelect(address);
-          }}
-        >
-          {visibleAddresses.map((address) => (
-            <div key={address._id} className="flex items-start space-x-2">
-              <RadioGroupItem
-                value={address._id}
-                id={address._id}
-                className="mt-1 accent-ushop-purple"
-              />
-              <Label htmlFor={address._id} className="flex-1 cursor-pointer">
-                <div className="space-y-1">
-                  <div className="font-medium flex items-center gap-2">
-                    {address.name}
-                    {address.default && (
-                      <span className="text-xs bg-ushop_light_pink text-ushop-purple-dark border border-ushop-pink/20 font-semibold px-2 py-0.5 rounded">
-                        Default
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {address.address}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {address.city}, {address.state} {address.zip}
-                  </div>
-                </div>
-              </Label>
-            </div>
-          ))}
-        </RadioGroup>
-
-        {hasMoreAddresses && (
-          <Button
-            variant="outline"
-            className="w-full border-dashed border-ushop-pink/40 text-ushop-purple hover:bg-ushop-pink hover:text-white font-semibold transition-colors"
-            onClick={() => setIsAllAddressesSidebarOpen(true)}
-          >
-            <List className="w-4 h-4 mr-2" />
-            Show All {addresses.length} Addresses
-          </Button>
-        )}
-
-        <Button
-          variant="outline"
-          className="w-full border-ushop-pink/40 text-ushop-purple hover:bg-ushop-pink hover:text-white font-semibold transition-colors"
-          onClick={() => setIsSidebarOpen(true)}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add New Address
-        </Button>
-
-        <AddAddressSidebar
-          userEmail={userEmail}
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-          onAddressAdded={handleAddressAdded}
-        />
-
-        <AllAddressesSidebar
-          isOpen={isAllAddressesSidebarOpen}
-          onClose={() => setIsAllAddressesSidebarOpen(false)}
-          addresses={addresses}
-          selectedAddress={selectedAddress}
-          onAddressSelect={onAddressSelect}
-        />
-      </CardContent>
-    </Card>
+    </div>
   );
 }
