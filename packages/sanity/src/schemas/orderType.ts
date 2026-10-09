@@ -1,3 +1,4 @@
+import { ORDER_STATUS_OPTIONS } from "@repo/utils/order-status";
 import { defineType, defineField } from "sanity";
 import { BasketIcon } from "@sanity/icons";
 
@@ -165,13 +166,7 @@ export const orderType = defineType({
       title: "Order Status",
       type: "string",
       options: {
-        list: [
-          { title: "Pending", value: "pending" },
-          { title: "Processing", value: "processing" },
-          { title: "Shipped", value: "shipped" },
-          { title: "Delivered", value: "delivered" },
-          { title: "Cancelled", value: "cancelled" },
-        ],
+        list: ORDER_STATUS_OPTIONS.map(({ title, value }) => ({ title, value })),
       },
       initialValue: "pending",
       validation: (Rule) => Rule.required(),

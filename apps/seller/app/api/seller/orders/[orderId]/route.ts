@@ -6,7 +6,7 @@ import { pickAllowedFields } from "@repo/utils";
 
 // Sellers may only advance fulfilment. They must never touch payment, totals,
 // ownership or any other order field (previously the whole body was `set` as-is).
-const SELLER_ORDER_FIELDS = ["orderStatus", "status"] as const;
+const SELLER_ORDER_FIELDS = ["orderStatus"] as const;
 const SELLER_FULFILMENT_STATUSES = new Set(["processing", "shipped", "out_for_delivery", "delivered"]);
 
 export async function PATCH(

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { writeClient } from "@repo/sanity";
 import { ORDER_STATUSES, PAYMENT_STATUSES } from "@/lib/orderStatus";
+import { WALLET_USER_QUERY } from "./queries";
 
 /**
  * Wallet mutations. SERVER-ONLY and deliberately NOT in a "use server" file.
@@ -68,10 +69,7 @@ function makeTransaction(
 
 async function loadWalletUser(clerkUserId: string, refundOrderId?: string): Promise<WalletUser | null> {
   return writeClient.fetch<WalletUser | null>(
-    `*[_type == "user" && clerkUserId == $clerkUserId][0]{
-      _id, _rev, walletBalance,
-      "alreadyCredited": defined($refundOrderId) && count(walletTransactions[type == "credit_refund" && orderId == $refundOrderId]) > 0
-    }`,
+    WALLET_USER_QUERY,
     { clerkUserId, refundOrderId: refundOrderId ?? null }
   );
 }
@@ -194,9 +192,9 @@ export async function payOrderWithWallet(clerkUserId: string, orderId: string): 
     const [order, user] = await Promise.all([
       writeClient.fetch<{
         _id: string; _rev: string; orderNumber?: string; totalPrice?: number;
-        paymentStatus?: string; status?: string; orderStatus?: string; clerkUserId?: string;
+        paymentStatus?: string; orderStatus?: string; clerkUserId?: string;
       } | null>(
-        `*[_type == "order" && _id == $orderId][0]{ _id, _rev, orderNumber, totalPrice, paymentStatus, status, orderStatus, clerkUserId }`,
+        `*[_type == "order" && _id == $orderId][0]{ _id, _rev, orderNumber, totalPrice, paymentStatus, orderStatus, clerkUserId }`,
         { orderId }
       ),
       loadWalletUser(clerkUserId),
@@ -205,7 +203,7 @@ export async function payOrderWithWallet(clerkUserId: string, orderId: string): 
     if (!order) return { ok: false, status: 404, error: "Order not found" };
     if (order.clerkUserId !== clerkUserId) return { ok: false, status: 403, error: "Unauthorized" };
     if (order.paymentStatus === PAYMENT_STATUSES.PAID) return { ok: false, status: 400, error: "Order is already paid" };
-    if (order.status === ORDER_STATUSES.CANCELLED || order.orderStatus === ORDER_STATUSES.CANCELLED) {
+    if (order.orderStatus === ORDER_STATUSES.CANCELLED) {
       return { ok: false, status: 400, error: "Order is cancelled" };
     }
     if (!user) return { ok: false, status: 404, error: "User not found" };
@@ -240,7 +238,7 @@ export async function payOrderWithWallet(clerkUserId: string, orderId: string): 
         .patch(order._id, (p) =>
           p.ifRevisionId(order._rev).set({
             paymentStatus: PAYMENT_STATUSES.PAID,
-            status: ORDER_STATUSES.PROCESSING,
+            orderStatus: ORDER_STATUSES.PROCESSING,
             paidAt: new Date().toISOString(),
           })
         )

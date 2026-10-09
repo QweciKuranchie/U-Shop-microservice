@@ -39,7 +39,7 @@ export default async function OrderDetailPage({
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Fulfillment Status:</span>
-            <Badge>{order.status || "processing"}</Badge>
+            <Badge>{order.orderStatus || "processing"}</Badge>
           </div>
         </CardContent>
       </Card>

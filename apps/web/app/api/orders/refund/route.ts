@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const limited = checkRateLimitByKey(userId, "orders:cancel", { limit: 10, windowMs: 60_000 });
+    const limited = await checkRateLimitByKey(userId, "orders:cancel", { limit: 10, windowMs: 60_000 });
     if (limited) return limited;
 
     const { orderId } = await req.json().catch(() => ({}));
@@ -44,18 +44,18 @@ export async function POST(req: NextRequest) {
 
     const order = await writeClient.fetch<{
       _id: string; orderNumber?: string; totalPrice?: number; amountPaid?: number;
-      paymentStatus?: string; status?: string; clerkUserId?: string;
+      paymentStatus?: string; orderStatus?: string; clerkUserId?: string;
     } | null>(
-      `*[_type == "order" && _id == $orderId][0]{ _id, orderNumber, totalPrice, amountPaid, paymentStatus, status, clerkUserId }`,
+      `*[_type == "order" && _id == $orderId][0]{ _id, orderNumber, totalPrice, amountPaid, paymentStatus, orderStatus, clerkUserId }`,
       { orderId }
     );
 
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
     if (order.clerkUserId !== userId) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    if (order.status === "cancelled") {
+    if (order.orderStatus === "cancelled") {
       return NextResponse.json({ error: "Order is already cancelled" }, { status: 400 });
     }
-    if (["delivered", "completed"].includes(order.status ?? "")) {
+    if (["delivered", "completed"].includes(order.orderStatus ?? "")) {
       return NextResponse.json({ error: "Cannot cancel delivered or completed orders" }, { status: 400 });
     }
 
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
 
     await writeClient
       .patch(orderId)
-      .set({ status: "cancelled", cancelledAt: new Date().toISOString(), cancelledBy: userId })
+      .set({ orderStatus: "cancelled", cancelledAt: new Date().toISOString(), cancelledBy: userId })
       .commit();
 
     return NextResponse.json(

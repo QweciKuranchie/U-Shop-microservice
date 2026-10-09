@@ -1,6 +1,7 @@
 "use client";
 import { Brand, Category, Product } from "@repo/sanity";
 import { client } from "@repo/sanity";
+import { buildShopParams, buildShopQuery } from "@repo/sanity/shop";
 import React, { useEffect, useState, useTransition } from "react";
 import Container from "../Container";
 import Title from "../Title";
@@ -114,49 +115,21 @@ const Shop = ({ categories, brands, classifications = [] }: Props) => {
   useEffect(() => {
     startTransition(async () => {
       try {
-        let minPrice = 0;
-        let maxPrice = 100000;
-
-        if (selectedPrice) {
-          const [min, max] = selectedPrice.split("-").map(Number);
-          minPrice = min;
-          maxPrice = max;
-        }
-
-        const searchPattern = searchQuery ? `*${searchQuery}*` : null;
-
-        const query = `
-        *[_type == 'product' 
-          && (!defined($searchPattern) || name match $searchPattern || description match $searchPattern)
-          && (!defined($selectedClassification) || productClassification->slug.current == $selectedClassification || productClassification->_id == $selectedClassification)
-          && (!defined($selectedCategory) || references(*[_type == "category" && (slug.current == $selectedCategory || parent->slug.current == $selectedCategory || parent->parent->slug.current == $selectedCategory)]._id))
-          && (!defined($selectedBrand) || references(*[_type == "brand" && slug.current == $selectedBrand]._id))
-          && (!defined($selectedCondition) || status == $selectedCondition || attributes.condition == $selectedCondition)
-          && (!defined($selectedWarranty) || warrantyType == $selectedWarranty)
-          && price >= $minPrice && price <= $maxPrice
-        ] 
-        | order(name asc) {
-          ...,
-          "categories": categories[]->title,
-          attributeValues[]{
-            ...,
-            attribute->{ _id, title, slug, type }
-          }
-        }
-      `;
-
+        // Query text/params live in @repo/sanity/shop (unit-tested against the previous
+        // query). The projection is slim; `attributeValues` are fetched only while a
+        // spec filter needs them.
+        const needsSpecs = Object.keys(dynamicAttrFilters).length > 0;
         const data: ExtendedProduct[] = await client.fetch(
-          query,
-          {
-            searchPattern,
-            selectedClassification,
-            selectedCategory,
-            selectedBrand,
-            selectedCondition,
-            selectedWarranty,
-            minPrice,
-            maxPrice,
-          },
+          buildShopQuery(needsSpecs),
+          buildShopParams({
+            searchQuery,
+            classification: selectedClassification,
+            category: selectedCategory,
+            brand: selectedBrand,
+            price: selectedPrice,
+            condition: selectedCondition,
+            warranty: selectedWarranty,
+          }),
           { next: { revalidate: 0 } }
         );
 

@@ -19,7 +19,7 @@ interface OrderProduct {
 }
 
 interface Order {
-  status: string;
+  orderStatus: string;
   products?: OrderProduct[];
 }
 
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
           quantity
         },
         totalPrice,
-        status
+        orderStatus
       }
     `;
 
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     const productStats = new Map();
 
     orders.forEach((order: Order) => {
-      if (order.status === "delivered" || order.status === "paid") {
+      if (order.orderStatus === "delivered" || order.orderStatus === "paid") {
         order.products?.forEach((item: OrderProduct) => {
           if (item.product) {
             const productId = item.product._id;
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     // Get overall analytics
     const totalOrdersQuery = `count(*[_type == "order" && orderDate >= $startDate])`;
     const revenueOrdersQuery = `
-      *[_type == "order" && orderDate >= $startDate && (status == "delivered" || status == "paid")].totalPrice
+      *[_type == "order" && orderDate >= $startDate && (orderStatus == "delivered" || orderStatus == "paid")].totalPrice
     `;
 
     const [totalOrders, revenuePrices] = await Promise.all([

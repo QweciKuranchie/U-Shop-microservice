@@ -96,7 +96,7 @@ export async function submitReview(
 
     // Check if user has purchased this product
     const hasPurchased = await client.fetch(
-      `count(*[_type == "order" && user._ref == $userId && status == "delivered" && $productId in products[].product._ref]) > 0`,
+      `count(*[_type == "order" && user._ref == $userId && orderStatus == "delivered" && $productId in products[].product._ref]) > 0`,
       { userId: sanityUser._id, productId: data.productId }
     );
 
@@ -362,7 +362,7 @@ export async function canUserReviewProduct(productId: string): Promise<{
 
     // Check if user has purchased this product
     const hasPurchased = await client.fetch(
-      `count(*[_type == "order" && user._ref == $userId && status == "delivered" && $productId in products[].product._ref]) > 0`,
+      `count(*[_type == "order" && user._ref == $userId && orderStatus == "delivered" && $productId in products[].product._ref]) > 0`,
       { userId: sanityUser._id, productId }
     );
 
