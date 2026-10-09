@@ -1,6 +1,14 @@
 import { unstable_cache } from "next/cache";
 import { Category, Brand, Product, Location } from "../types";
 import { sanityFetch } from "../live";
+import {
+  buildCatalogQuery,
+  catalogCacheKey,
+  CATALOG_MAX_PRICE_QUERY,
+  sliderMax,
+  type CatalogPage,
+  type CatalogParams,
+} from "../catalogQuery";
 import { getOrderById } from "./userQueries";
 
 export * from "./userQueries";
@@ -84,6 +92,49 @@ const getAllProducts = unstable_cache(
     }
   },
   ["all-products"],
+  { revalidate: 600, tags: ["products"] }
+);
+
+
+/**
+ * One page of the product catalogue, filtered/sorted/paginated by Sanity.
+ * Replaces loading EVERY product and filtering in the browser.
+ *
+ * Browse/filter pages (a small, bounded set of keys) are cached for 5 minutes and
+ * invalidated through the "products" tag. Free-text searches are NOT cached: the
+ * key space is unbounded and would let anyone fill the data cache.
+ */
+const fetchProductsPage = async (params: CatalogParams): Promise<CatalogPage> => {
+  const { query, params: groqParams } = buildCatalogQuery(params);
+  const { data } = (await sanityFetch({ query, params: groqParams })) as { data: CatalogPage | null };
+  return { items: data?.items ?? [], total: data?.total ?? 0 };
+};
+
+const getProductsPage = async (params: CatalogParams): Promise<CatalogPage> => {
+  try {
+    if (params.q) return await fetchProductsPage(params);
+    return await unstable_cache(() => fetchProductsPage(params), ["catalog-page", catalogCacheKey(params)], {
+      revalidate: 300,
+      tags: ["products"],
+    })();
+  } catch (error) {
+    console.error("Error fetching catalogue page:", error);
+    return { items: [], total: 0 };
+  }
+};
+
+/** Upper bound for the catalogue price slider (cached 10 minutes). */
+const getCatalogPriceMax = unstable_cache(
+  async () => {
+    try {
+      const { data } = (await sanityFetch({ query: CATALOG_MAX_PRICE_QUERY })) as { data: number | null };
+      return sliderMax(data);
+    } catch (error) {
+      console.error("Error fetching catalogue max price:", error);
+      return sliderMax(null);
+    }
+  },
+  ["catalog-max-price"],
   { revalidate: 600, tags: ["products"] }
 );
 
@@ -578,6 +629,8 @@ const getProductsByStoreSlug = unstable_cache(
 export {getBanner,
   getFeaturedCategory,
   getAllProducts,
+  getProductsPage,
+  getCatalogPriceMax,
   getDealProducts,
   getPopularProducts,
   getNewArrivalProducts,

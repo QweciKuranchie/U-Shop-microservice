@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const limited = checkRateLimitByKey(userId, "orders:create", { limit: 10, windowMs: 60_000 });
+    const limited = await checkRateLimitByKey(userId, "orders:create", { limit: 10, windowMs: 60_000 });
     if (limited) return limited;
 
     const parsed = bodySchema.safeParse(await request.json().catch(() => null));
@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
       order: {
         _id: createdOrder._id,
         orderNumber: createdOrder.orderNumber,
-        status: createdOrder.orderStatus || createdOrder.status,
+        status: createdOrder.orderStatus,
         paymentMethod: createdOrder.paymentMethod,
         totalPrice: createdOrder.totalPrice,
         currency: createdOrder.currency,

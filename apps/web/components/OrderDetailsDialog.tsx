@@ -53,7 +53,7 @@ const OrderDetailsDialog: FC<OrderDetailsDialogProps> = ({
           <p>
             <strong>Status:</strong>{" "}
             <span className="capitalize text-green-600 font-medium">
-              {order.status}
+              {order.orderStatus}
             </span>
           </p>
           {order?.paymentStatus && (

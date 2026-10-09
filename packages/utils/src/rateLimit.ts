@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
 /**
  * In-memory fixed-window rate limiter. SERVER ONLY — import from
  * "@repo/utils/rate-limit", never from the package barrel (it is intentionally
  * not re-exported there, so client bundles never pull in `next/server`).
  *
- * Limitations (by design, documented rather than hidden):
- *  - State is per server instance. On serverless/multi-instance deployments the
- *    effective limit is `limit × instances`. For hard guarantees on payment
- *    endpoints swap the store for Redis/Upstash behind the same API.
- *  - No module-level timers: expired entries are swept lazily, and the map is
- *    bounded, so there is no leaked interval (previously one per HMR reload /
- *    per client bundle) and no unbounded growth.
+ * Two backends behind one API:
+ *  - Upstash Redis (sliding window) when UPSTASH_REDIS_REST_URL and
+ *    UPSTASH_REDIS_REST_TOKEN are set: shared across every serverless instance,
+ *    so the limit is real. Used in production.
+ *  - In-memory fixed window otherwise (local dev) and as an automatic fallback
+ *    if Redis errors or is slow. A Redis outage therefore degrades protection to
+ *    per-instance limits instead of taking checkout down. Failures are logged.
+ *
+ * No module-level timers: expired in-memory entries are swept lazily and the map
+ * is bounded, so there is no leaked interval and no unbounded growth.
  */
 
 export interface RateLimitOptions {
@@ -128,6 +133,91 @@ export function getClientIp(req: NextRequest): string {
   return "unknown";
 }
 
+// ---------------------------------------------------------------------------
+// Remote (Upstash) backend
+// ---------------------------------------------------------------------------
+
+const REMOTE_TIMEOUT_MS = 1500;
+
+/** Minimal surface we need from the remote limiter (also what tests fake). */
+export interface RemoteLimiter {
+  limit(identifier: string): Promise<{ success: boolean; limit: number; remaining: number; reset: number }>;
+}
+export type RemoteLimiterFactory = (options: RateLimitOptions, prefix: string) => RemoteLimiter | null;
+
+/** `60000` → `"60 s"`, `1500` → `"1500 ms"` (Upstash duration strings). */
+export function windowToDuration(windowMs: number): `${number} s` | `${number} ms` {
+  const ms = Math.max(1, Math.floor(windowMs));
+  return ms % 1000 === 0 ? `${ms / 1000} s` : `${ms} ms`;
+}
+
+let redisClient: Redis | null | undefined;
+const remoteLimiters = new Map<string, RemoteLimiter>();
+
+const upstashFactory: RemoteLimiterFactory = (options, prefix) => {
+  if (redisClient === undefined) {
+    const url = process.env.UPSTASH_REDIS_REST_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+    redisClient = url && token ? new Redis({ url, token }) : null;
+  }
+  if (!redisClient) return null;
+
+  // One Ratelimit instance per distinct (prefix, limit, window).
+  const cacheKey = `${prefix}|${options.limit}|${options.windowMs}`;
+  let limiter = remoteLimiters.get(cacheKey);
+  if (!limiter) {
+    limiter = new Ratelimit({
+      redis: redisClient,
+      limiter: Ratelimit.slidingWindow(options.limit, windowToDuration(options.windowMs)),
+      prefix: `ushop:rl:${prefix}`,
+      analytics: false,
+    });
+    remoteLimiters.set(cacheKey, limiter);
+  }
+  return limiter;
+};
+
+let remoteFactory: RemoteLimiterFactory = upstashFactory;
+
+/** Test seam: swap (or reset with no argument) the remote backend factory. */
+export function setRemoteLimiterFactory(factory?: RemoteLimiterFactory): void {
+  remoteFactory = factory ?? upstashFactory;
+  remoteLimiters.clear();
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`rate limiter timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+/** Decide using Redis when available; fall back to in-memory on absence/error/timeout. */
+export async function evaluateRateLimit(
+  identifier: string,
+  prefix: string,
+  options: RateLimitOptions,
+  now: number = Date.now()
+): Promise<RateLimitResult> {
+  const remote = remoteFactory(options, prefix);
+  if (remote) {
+    try {
+      const r = await withTimeout(remote.limit(identifier), REMOTE_TIMEOUT_MS);
+      return {
+        allowed: r.success,
+        limit: r.limit,
+        remaining: r.remaining,
+        resetTime: r.reset,
+        retryAfterSeconds: r.success ? 0 : Math.max(1, Math.ceil((r.reset - now) / 1000)),
+      };
+    } catch (error) {
+      console.error("[rate-limit] Redis unavailable, using in-memory fallback:", error);
+    }
+  }
+  return consumeRateLimit(`${prefix}:${identifier}`, options, now);
+}
+
 function tooManyRequests(result: RateLimitResult): NextResponse {
   return NextResponse.json(
     {
@@ -148,14 +238,14 @@ function tooManyRequests(result: RateLimitResult): NextResponse {
 
 /**
  * Per-IP limit. Returns a 429 response if exceeded, otherwise null.
- * (Signature unchanged from the previous implementation.)
+ * (Now async: callers must `await` it.)
  */
-export function checkRateLimit(
+export async function checkRateLimit(
   req: NextRequest,
   prefix: string,
   options: RateLimitOptions
-): NextResponse | null {
-  const result = consumeRateLimit(`${prefix}:${getClientIp(req)}`, options);
+): Promise<NextResponse | null> {
+  const result = await evaluateRateLimit(getClientIp(req), prefix, options);
   return result.allowed ? null : tooManyRequests(result);
 }
 
@@ -165,11 +255,11 @@ export function checkRateLimit(
  * IP-only limits punish legitimate shoppers while doing little against a
  * determined attacker.
  */
-export function checkRateLimitByKey(
+export async function checkRateLimitByKey(
   key: string,
   prefix: string,
   options: RateLimitOptions
-): NextResponse | null {
-  const result = consumeRateLimit(`${prefix}:${key}`, options);
+): Promise<NextResponse | null> {
+  const result = await evaluateRateLimit(key, prefix, options);
   return result.allowed ? null : tooManyRequests(result);
 }

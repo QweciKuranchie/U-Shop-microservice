@@ -68,7 +68,7 @@ export const USER_BY_CLERK_ID_QUERY = `
       orderNumber,
       totalPrice,
       currency,
-      status,
+      orderStatus,
       orderDate
     },
     loyaltyPoints,
@@ -168,7 +168,7 @@ export const USER_ORDERS_QUERY = `
     currency,
     amountDiscount,
     address,
-    status,
+    orderStatus,
     orderDate,
     invoice
   }
@@ -207,7 +207,7 @@ export const ORDER_BY_ID_QUERY = `
     currency,
     amountDiscount,
     address,
-    status,
+    orderStatus,
     paymentStatus,
     paymentMethod,
     orderDate,
@@ -358,7 +358,7 @@ export interface SanityOrder {
   shipping?: number;
   totalPrice?: number;
   currency?: string;
-  status?: string;
+  orderStatus?: string;
   paymentStatus?: string;
   paymentMethod?: string;
   orderDate?: string;

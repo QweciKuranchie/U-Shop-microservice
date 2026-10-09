@@ -42,7 +42,7 @@ const getLatestOrders = async (): Promise<OrderType[]> => {
         _id,
         customerEmail,
         email,
-        status,
+        orderStatus,
         totalPrice,
         amount
       }`
@@ -52,7 +52,7 @@ const getLatestOrders = async (): Promise<OrderType[]> => {
       _id: ord._id,
       id: ord._id,
       email: ord.customerEmail || ord.email || "customer@example.com",
-      status: ord.status || "pending",
+      status: ord.orderStatus || "pending",
       amount: ord.totalPrice !== undefined ? ord.totalPrice * 100 : (ord.amount || 0),
     }));
   } catch (error) {

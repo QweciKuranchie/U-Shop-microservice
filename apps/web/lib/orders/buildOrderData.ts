@@ -76,7 +76,6 @@ export function buildOrderData(input: BuildOrderDataInput) {
       zip: input.shippingAddress.zip || "",
     },
     orderStatus: ORDER_STATUSES.PENDING,
-    status: ORDER_STATUSES.PENDING,
     orderDate: new Date().toISOString(),
     paymentMethod: input.paymentMethod,
     paymentStatus: PAYMENT_STATUSES.PENDING,

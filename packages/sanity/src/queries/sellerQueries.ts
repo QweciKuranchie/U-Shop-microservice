@@ -20,7 +20,7 @@ export const SELLER_LISTINGS_QUERY = defineQuery(
 export const SELLER_ORDERS_QUERY = defineQuery(
   `*[_type == "order" && count(products[product->store._ref == $storeId]) > 0]
    | order(_createdAt desc)[0...50]{
-     _id, _createdAt, status, totalAmount,
+     _id, _createdAt, orderStatus, totalAmount,
      products[]{ quantity, product->{ _id, name, store->{ _id } } }
    }`
 );

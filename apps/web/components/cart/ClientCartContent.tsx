@@ -24,7 +24,7 @@ interface UserOrder {
   orderNumber: string;
   totalPrice: number;
   currency: string;
-  status: string;
+  orderStatus: string;
   orderDate: string;
   customerName: string;
   email: string;

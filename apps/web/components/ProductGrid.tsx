@@ -144,7 +144,7 @@ const ProductGrid = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        let response = await client.fetch(query, params);
+        let response = await client.fetch<Product[]>(query, params as any);
         // Fallback if no products are explicitly marked as featured in Sanity yet
         if ((!response || response.length === 0)) {
           const fallbackQuery = `*[_type == "product" && (
@@ -161,7 +161,7 @@ const ProductGrid = () => {
             "productClassification": productClassification->{ _id, title, slug },
             "store": store->{ _id, name, slug }
           }`;
-          response = await client.fetch(fallbackQuery, params);
+          response = await client.fetch<Product[]>(fallbackQuery, params as any);
         }
         setProducts(response || []);
       } catch (error) {

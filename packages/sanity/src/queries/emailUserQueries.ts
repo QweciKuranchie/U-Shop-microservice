@@ -38,7 +38,7 @@ export const USER_ORDERS_BY_EMAIL_QUERY = `
     currency,
     amountDiscount,
     address,
-    status,
+    orderStatus,
     orderDate,
     invoice,
     customerName,

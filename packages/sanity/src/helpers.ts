@@ -23,7 +23,7 @@ export async function getMyOrders(
       _id,
       orderNumber,
       orderDate,
-      status,
+      orderStatus,
       totalPrice,
       currency,
       amountDiscount,

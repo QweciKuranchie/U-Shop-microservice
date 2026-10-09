@@ -70,7 +70,7 @@ export function OrderCheckoutContent({ order }: OrderCheckoutContentProps) {
                 Order #{order.orderNumber?.slice(-8)}
               </CardTitle>
               <Badge variant="outline" className="capitalize bg-ushop_light_pink text-ushop-purple-dark border-ushop-pink/20">
-                {order.status}
+                {order.orderStatus}
               </Badge>
             </div>
           </CardHeader>

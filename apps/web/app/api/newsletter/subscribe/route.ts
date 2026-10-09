@@ -6,7 +6,7 @@ import { checkRateLimit, getClientIp } from "@repo/utils/rate-limit";
 export async function POST(request: NextRequest) {
   try {
     // Apply Rate Limiting (max 5 subscriptions per 10 mins per IP)
-    const rateLimitError = checkRateLimit(request, "newsletter-sub", {
+    const rateLimitError = await checkRateLimit(request, "newsletter-sub", {
       limit: 5,
       windowMs: 10 * 60 * 1000,
     });

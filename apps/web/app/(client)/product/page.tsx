@@ -1,7 +1,14 @@
 import React, { Suspense } from "react";
 import Container from "@/components/Container";
 import Title from "@/components/Title";
-import { getAllProducts, getCategories, getAllBrands } from "@repo/sanity/queries";
+import { getProductsPage, getCatalogPriceMax, getCategories, getAllBrands } from "@repo/sanity/queries";
+import {
+  DEFAULT_CATALOG_PARAMS,
+  catalogParamsToSearchParams,
+  parseCatalogParams,
+  totalPages,
+} from "@repo/sanity/catalog";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import ProductCatalog from "@/components/ProductCatalog";
 
@@ -15,12 +22,31 @@ import {
   BreadcrumbSeparator,
  } from "@repo/ui";
 
-const ProductPage = async () => {
-  const [products, categories, brands] = await Promise.all([
-    getAllProducts(),
+type SearchParams = Record<string, string | string[] | undefined>;
+
+const ProductPage = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
+  // The URL is the state: filters, sort and page are validated here and only one
+  // page of products is fetched (previously the ENTIRE catalogue, filtered in the browser).
+  const params = parseCatalogParams(await searchParams);
+
+  const [pageData, categories, brands, maxPrice] = await Promise.all([
+    getProductsPage(params),
     getCategories(),
     getAllBrands(),
+    getCatalogPriceMax(),
   ]);
+
+  // A stale or hand-edited ?page=999 lands on the last real page instead of an empty one.
+  const pages = totalPages(pageData.total);
+  if (params.page > pages) {
+    const qs = catalogParamsToSearchParams({ ...params, page: pages }).toString();
+    redirect(qs ? `/product?${qs}` : "/product");
+  }
+
+  // The hero shows the size of the WHOLE catalogue, so it must not shrink under a filter
+  // (the unfiltered first page is cached, so this is normally free).
+  const isUnfiltered = catalogParamsToSearchParams({ ...params, page: 1, sort: DEFAULT_CATALOG_PARAMS.sort }).toString() === "";
+  const catalogTotal = isUnfiltered ? pageData.total : (await getProductsPage(DEFAULT_CATALOG_PARAMS)).total;
 
   return (
     <div className="bg-gradient-to-b from-gray-50 to-white min-h-screen">
@@ -67,7 +93,7 @@ const ProductPage = async () => {
                   </div>
                   <div>
                     <p className="font-semibold text-white">
-                      {products?.length || 0}+ Products
+                      {catalogTotal}+ Products
                     </p>
                     <p className="text-sm text-white/70">
                       Premium Quality Items
@@ -115,7 +141,10 @@ const ProductPage = async () => {
           }
         >
           <ProductCatalog
-            initialProducts={products}
+            items={pageData.items}
+            total={pageData.total}
+            params={params}
+            maxPrice={maxPrice}
             categories={categories}
             brands={brands}
           />

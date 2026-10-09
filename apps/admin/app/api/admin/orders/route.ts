@@ -8,7 +8,7 @@ interface SanityOrderDoc {
   orderNumber?: string;
   customerEmail?: string;
   email?: string;
-  status?: string;
+  orderStatus?: string;
   totalPrice?: number;
   amount?: number;
   clerkUserId?: string;
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
       orderNumber,
       customerEmail,
       email,
-      status,
+      orderStatus,
       totalPrice,
       amount,
       clerkUserId,
@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
         _id: ord._id,
         orderNumber: ord.orderNumber || ord._id,
         email: ord.customerEmail || ord.email || "customer@example.com",
-        status: ord.status || "pending",
+        status: ord.orderStatus || "pending",
         amount: typeof amount === "number" ? amount : 0,
         userId: ord.clerkUserId || ord.userClerkId || "",
         fullName: ord.customerName || ord.fullName || "Customer",
@@ -108,7 +108,6 @@ export async function POST(req: NextRequest) {
       clerkUserId: orderUserId || userId,
       totalPrice: (amount || 0) / 100,
       orderStatus: status || "pending",
-      status: status || "pending",
       paymentStatus: (status === "delivered" || status === "success" || status === "paid") ? "paid" : "pending",
       orderDate: new Date().toISOString(),
     });
@@ -118,7 +117,7 @@ export async function POST(req: NextRequest) {
       order: {
         id: newOrder._id,
         _id: newOrder._id,
-        status: newOrder.status,
+        status: newOrder.orderStatus,
       },
     });
   } catch (error: unknown) {

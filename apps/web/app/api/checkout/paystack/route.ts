@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const limited = checkRateLimitByKey(userId, "paystack:init", { limit: 10, windowMs: 60_000 });
+    const limited = await checkRateLimitByKey(userId, "paystack:init", { limit: 10, windowMs: 60_000 });
     if (limited) return limited;
 
     const body = await request.json().catch(() => null);
@@ -55,9 +55,9 @@ export async function POST(request: NextRequest) {
 
     const order = await writeClient.fetch<{
       _id: string; orderNumber: string; totalPrice?: number; currency?: string;
-      paymentStatus?: string; status?: string; orderStatus?: string; clerkUserId?: string; email?: string;
+      paymentStatus?: string; orderStatus?: string; clerkUserId?: string; email?: string;
     } | null>(
-      `*[_type == "order" && _id == $orderId][0]{ _id, orderNumber, totalPrice, currency, paymentStatus, status, orderStatus, clerkUserId, email }`,
+      `*[_type == "order" && _id == $orderId][0]{ _id, orderNumber, totalPrice, currency, paymentStatus, orderStatus, clerkUserId, email }`,
       { orderId }
     );
 
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     if (order.paymentStatus === PAYMENT_STATUSES.PAID) {
       return NextResponse.json({ error: "Order is already paid" }, { status: 400 });
     }
-    if (order.status === ORDER_STATUSES.CANCELLED || order.orderStatus === ORDER_STATUSES.CANCELLED) {
+    if (order.orderStatus === ORDER_STATUSES.CANCELLED) {
       return NextResponse.json({ error: "Order is cancelled" }, { status: 400 });
     }
 
